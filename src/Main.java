@@ -1,21 +1,15 @@
+Leitura leitura = new Leitura();
 void menu(){
-    try {
+
         System.out.println("""
             1- CONTA--- CORRENTE/POUPANÇA
             2 - MOVIMENTAÇÃO / ENTRADA E SAIDA
             3 - EXTRATO
             4 - POUPANÇA
             """);
-        Leitura leitura = new Leitura();
         System.out.print("Selecione uma Opção: ");
         switch (leitura.entradaValor()){
             case 1:
-                System.out.println("Menu Conta");
-                System.out.println("""
-                    1 - Criar Conta Corrente
-                    2 - Criar Conta Poupança
-                    3 - Voltar Menu
-                    """);
                 opConta();
                 break;
             case 0 :
@@ -24,30 +18,52 @@ void menu(){
                 System.out.println("Opção Invalida");
                 menu();
         }
-    } catch (Exception e) {
-        throw new RuntimeException(e);
-    }
-
-
-    }
+}
 void opConta() {
-Leitura leitura = new Leitura();
+    System.out.println("""
+             ----------MENU CONTA----------
+            1 - CRIAR CONTA
+            2 - EDITAR CONTA
+            3 - APAGAR CONTA
+            4 - VOLTAR
+            """);
     System.out.print("Selecione uma Opção: ");
     switch (leitura.entradaValor()) {
         case 1:
-            Conta.criarContaCorrente();
-            menu();
+            System.out.println("""
+                    ----------CRIAR CONTA----------
+                    1 - CORRENTE
+                    2 - POUPANÇA
+                    3 - VOLTAR MENU CONTA
+                    """);
+            System.out.print("Selecione A Opção: ");
+            switch (leitura.entradaValor()){
+                case 1:
+                    Conta.criarContaCorrente();
+                    menu();
+                    break;
+                case 2 :
+                    Conta.criarContaPoupança();
+                    menu();
+                    break;
+                case 3 :
+                    menu();
+                    break;
+                default:
+                    System.out.println("OPÇÃO INVALIDA");
+                    opConta();
+                    break;
+            }
             break;
         case 2:
-            Conta.criarContaPoupança();
-            menu();
-            break;
+
+
         default:
             System.out.println("Opção Invalida");
-            opConta();
     }
 
 }
 void main() {
+    DBContas.contasTeste();
     menu();
 }

@@ -1,3 +1,4 @@
+
 public class Conta {
    private String tipoConta;
     private String banco;
@@ -47,7 +48,7 @@ public class Conta {
     }
     public static void criarContaPoupança(){
         Leitura leitura = new Leitura();
-        String tipoConta = "Conta Corrente";
+        String tipoConta = "Conta Poupança";
         //-------------------------------------
         System.out.print("Banco da Conta: ");
         String banco = leitura.entradaTexto();
@@ -65,6 +66,11 @@ public class Conta {
         DBContas.salvar(contaUser);
         System.out.println("Conta Poupança " + contaUser.getTipoConta()+ "Criada com sucesso!");
     }
+
+    public static void menuConta(){
+
+    }
+
 
     public String getTipoConta() {
         return tipoConta;
