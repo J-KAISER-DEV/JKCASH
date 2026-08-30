@@ -29,6 +29,40 @@ public void exibirRecibo(){
     System.out.println("Valor: R$ " + this.valor);
     System.out.println("======================================");
 }
+public static void registrarSaida(){
+        Leitura leitura = new Leitura();
+
+
+    System.out.println("\n--------------REGISTRAR DESPESA------------------");
+    System.out.print("Conta Usada: ");
+    String banco = leitura.entradaTexto();
+    Conta contaUsada = DBContas.buscarConta(banco);
+    if(contaUsada == null){
+        System.out.println("Conta Inexistente");
+        return;
+    }
+
+    System.out.print("Local ou Entidade recebedora: ");
+    String recebedor = leitura.entradaTexto();
+    System.out.print("Descrição da Compra: ");
+    String descricao = leitura.entradaTexto();
+    System.out.println("Valor R$: ");
+    double valor = leitura.lerDouble();
+    if(contaUsada.getSaldo().descontar(valor)){
+        Categoria catEscolhida = leitura.lerCategoria();
+        Necessidade necEscolhida = leitura.lerNecessidade();
+
+        Despesa novaDespesa = new Despesa(banco, recebedor, necEscolhida,catEscolhida, descricao, valor);
+        DBDespesas.salvarDespesa(novaDespesa);
+        System.out.println("Despesa Registrada!");
+        novaDespesa.exibirRecibo();
+
+    }else {
+        System.out.println("Valor Insuficiente");
+    }
+
+}
+
 
     public String getBancoUsado() {
         return bancoUsado;

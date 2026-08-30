@@ -36,6 +36,13 @@ public class Saldo {
     }
 //---------------------------------------------------
 
-
+public boolean descontar(double valorCompra){
+        if(this.saldo >= valorCompra){
+            this.saldo -= valorCompra;
+            return true;
+        }else{
+            return false;
+        }
+}
 
 }

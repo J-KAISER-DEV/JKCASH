@@ -12,6 +12,9 @@ void menu(){
             case 1:
                 opConta();
                 break;
+            case 2:
+                opMovimentacao();
+                break;
             case 0 :
                 System.exit(0);
             default:
@@ -19,6 +22,25 @@ void menu(){
                 menu();
         }
 }
+void opMovimentacao(){
+    System.out.println("""
+            1 - Resgistrar Despesa
+            2 - Registrar Entrada
+            3 - Registrar Transferencia Interna
+            4 - Voltar
+            """);
+    System.out.print("Selecione uma Opção: ");
+    switch (leitura.entradaValor()){
+        case 1:
+            Despesa.registrarSaida();
+            menu();
+            break;
+        default:
+            System.out.println("Opção Invalida, Voltando No Menu");
+            menu();
+    }
+
+        }
 void opConta() {
     System.out.println("""
              ----------MENU CONTA----------
@@ -47,7 +69,7 @@ void opConta() {
                     menu();
                     break;
                 case 3 :
-                    menu();
+                    opConta();
                     break;
                 default:
                     System.out.println("OPÇÃO INVALIDA");
@@ -56,6 +78,16 @@ void opConta() {
             }
             break;
         case 2:
+            DBContas.editarConta();
+            opConta();
+            break;
+        case 3:
+            DBContas.apagarConta();
+            opConta();
+            break;
+        case 4:
+            menu();;
+            break;
 
 
         default:
