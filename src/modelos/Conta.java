@@ -1,3 +1,7 @@
+package modelos;
+
+import bancodedados.DBContas;
+import utis.Leitura;
 
 public class Conta {
    private String tipoConta;
@@ -13,11 +17,11 @@ public class Conta {
 
     public static void criarContaCorrente(){
         Leitura leitura = new Leitura();
-        String tipoConta = "Corrente";
+        String tipoConta = "Corrente".toUpperCase();
         //-------------------------------------
         System.out.print("Banco da Conta: ");
-        String banco = leitura.entradaTexto();
-        if (DBContas.verificaDBContas(tipoConta, banco)){
+        String banco = leitura.entradaTexto().toUpperCase();
+        if (DBContas.verificaDBContas(tipoConta, banco)!= null){
             System.out.println("Conta Ja Existente");
         }else{
             //-----------------------------------------
@@ -50,11 +54,11 @@ public class Conta {
 
     public static void criarContaPoupança(){
         Leitura leitura = new Leitura();
-        String tipoConta = "Conta Poupança";
+        String tipoConta = "Conta Poupança".toUpperCase();
         //-------------------------------------
         System.out.print("Banco da Conta: ");
-        String banco = leitura.entradaTexto();
-        if (DBContas.verificaDBContas(tipoConta, banco)){
+        String banco = leitura.entradaTexto().toUpperCase();
+        if (DBContas.verificaDBContas(tipoConta, banco)!= null){
             System.out.println("Conta Ja Existente");
         }else{
             //-----------------------------------

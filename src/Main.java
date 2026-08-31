@@ -1,11 +1,16 @@
+import bancodedados.DBContas;
+import modelos.Conta;
+import modelos.Movimentacao;
+import utis.Leitura;
+
 Leitura leitura = new Leitura();
 void menu(){
 
         System.out.println("""
+            \n=============MENU=================
             1- CONTA--- CORRENTE/POUPANÇA
             2 - MOVIMENTAÇÃO / ENTRADA E SAIDA
-            3 - EXTRATO
-            4 - POUPANÇA
+            3 - FATURA DO CREDITO
             """);
         System.out.print("Selecione uma Opção: ");
         switch (leitura.entradaValor()){
@@ -32,7 +37,11 @@ void opMovimentacao(){
     System.out.print("Selecione uma Opção: ");
     switch (leitura.entradaValor()){
         case 1:
-            Despesa.registrarSaida();
+            Movimentacao.registrarSaida();
+            menu();
+            break;
+        case 2:
+            Movimentacao.registrarEntrada();
             menu();
             break;
         default:
@@ -47,7 +56,8 @@ void opConta() {
             1 - CRIAR CONTA
             2 - EDITAR CONTA
             3 - APAGAR CONTA
-            4 - VOLTAR
+            4 - CONSULTAR CONTA
+            5 - VOLTAR
             """);
     System.out.print("Selecione uma Opção: ");
     switch (leitura.entradaValor()) {
@@ -85,7 +95,7 @@ void opConta() {
             DBContas.apagarConta();
             opConta();
             break;
-        case 4:
+        case 5:
             menu();;
             break;
 

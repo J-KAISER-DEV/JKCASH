@@ -1,3 +1,8 @@
+package bancodedados;
+
+import modelos.Conta;
+import modelos.Saldo;
+import utis.Leitura;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -5,40 +10,36 @@ public class DBContas {
     private static Map<String, Conta> bancoDeDados = new HashMap<>();
 
 
-    public static boolean verificaDBContas(String tipoConta, String banco){
-    String chave = tipoConta + " - " + banco;
-    if(bancoDeDados.containsKey(chave)){
-        return false;
-    }else{
-        return true;
-    }
+    public static Conta verificaDBContas(String tipoConta, String banco){
+    String chave = (tipoConta + "-" + banco).toUpperCase().trim();
+   return bancoDeDados.get(chave);
 
 }
     public static void salvar(Conta conta) {
-        String chave = (conta.getTipoConta() + " - " + conta.getBanco().toUpperCase());
+        String chave = conta.getTipoConta() + "-" + conta.getBanco();
             bancoDeDados.put(chave, conta);
-            System.out.println( conta.getTipoConta() + " " + conta.getBanco() + " Criada com sucesso!");
+            System.out.println("modelos.Conta: " + conta.getTipoConta() + " " + conta.getBanco() + " Criada com sucesso!");
 
     }
 public static void apagarConta(){
     Leitura leitura = new Leitura();
     System.out.println("=======APAGAR CONTA =======");
-    System.out.print("Digite o tipo da Conta: ");
-    String tipoConta = leitura.entradaTexto();
+    System.out.print("Digite o tipo da modelos.Conta: ");
+    String tipoConta = leitura.entradaTexto().toUpperCase();
     System.out.print("Digite o Banco: ");
-    String banco = leitura.entradaTexto();
-    String chaveConta = (tipoConta + "-" + banco).toUpperCase();
+    String banco = leitura.entradaTexto().toUpperCase();
+    String chaveConta = (tipoConta + "-" + banco);
 
     if ((bancoDeDados.containsKey(chaveConta))){
-        System.out.println("Conta Apagada");
+        System.out.println("modelos.Conta Apagada");
         bancoDeDados.remove(chaveConta);
     }else {
-        System.out.println("Conta nao Existe");
+        System.out.println("modelos.Conta nao Existe");
     }
 }
     public static void editarConta() {
         Leitura leitura = new Leitura();
-        System.out.print("Digite o tipo da Conta: ");
+        System.out.print("Digite o tipo da modelos.Conta: ");
         String tipoContaAntiga = leitura.entradaTexto();
         System.out.print("Digite o Banco do Titular: ");
         String bancoAntigo = leitura.entradaTexto();
@@ -64,23 +65,23 @@ public static void apagarConta(){
                     System.out.println("Banco Alterado para" + novoBanco);
                     break;
                 case 2:
-                    System.out.print("Digite o novo tipo de Conta: ");
+                    System.out.print("Digite o novo tipo de modelos.Conta: ");
                     String novoTipo = leitura.entradaTexto();
 
                     Conta contaMudaTipo = bancoDeDados.get(chaveAntiga);
                     contaMudaTipo.setTipoConta(novoTipo);
-                    System.out.println("Tipo de Conta Alterada!");
+                    System.out.println("Tipo de modelos.Conta Alterada!");
                     break;
                 default:
                     System.out.println("Opção Invalida");
             }
         }else {
-            System.out.println("Conta Nao Encontrada!");
+            System.out.println("modelos.Conta Nao Encontrada!");
         }
     }
     public static void contasTeste(){
         Saldo saldo1 = new Saldo(5000.00, 2000, 500);
-        Conta nubank = new Conta("poupança", "nubank", saldo1);
+        Conta nubank = new Conta("POUPANÇA", "NUBANK", saldo1);
 
         Saldo saldo2 = new Saldo(90.00, 7000, 800);
         Conta itau = new Conta("corrente", "itau", saldo2);

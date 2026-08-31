@@ -1,3 +1,5 @@
+package modelos;
+
 public class Saldo {
     private double saldo;
     private double credito;
@@ -43,6 +45,10 @@ public boolean descontar(double valorCompra){
         }else{
             return false;
         }
+}
+
+public void depositar(double valorDepositado){
+        this.saldo += valorDepositado;
 }
 
 }

@@ -1,3 +1,8 @@
+package utis;
+
+import modelos.Categoria;
+import modelos.Necessidade;
+
 import java.util.Scanner;
 
 public class Leitura {
@@ -33,7 +38,7 @@ public class Leitura {
 
     public Categoria lerCategoria() {
     while(true){
-        System.out.println("Selecione a Categoria: ");
+        System.out.println("Selecione a modelos.Categoria: ");
         System.out.println("1 - ALIMENTAÇÃO");
         System.out.println("2 - SAUDE E HIGIENE");
         System.out.println("3 - LOCOMOÇÃO");

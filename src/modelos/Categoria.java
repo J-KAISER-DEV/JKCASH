@@ -1,3 +1,5 @@
+package modelos;
+
 public enum Categoria {
     ALIMENTACAO, SAUDE_HIGIENE, LOCOMOCAO, LAZER, ESTUDO, ASSINATURAS, OUTROS
 }
