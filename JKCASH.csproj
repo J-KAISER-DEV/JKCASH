@@ -7,4 +7,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\JKCASH.Application\JKCASH.Application.csproj" />
+    <ProjectReference Include="..\JKCASH.Infrastructure\JKCASH.Infrastructure.csproj" />
+  </ItemGroup>
+
 </Project>
