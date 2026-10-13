@@ -17,17 +17,15 @@ namespace JKCASH.Domain.Entidades
             decimal saldoInicial = 0m,
             decimal limiteChequeEspecial = 0m)
         {
-            if (string.IsNullOrWhiteSpace(nome))
-            {
-                throw new ArgumentNullException(
-                    "Informe o nome da conta. ");
-            }
+            Nome = ValidarTextoObrigatorio(
+                nome,
+                nameof(nome),
+                "Informe o nome da conta. ");
 
-            if (string.IsNullOrWhiteSpace(banco))
-            {
-                throw new ArgumentNullException(
-                    "Informe o banco. ");
-            }
+            Banco = ValidarTextoObrigatorio(
+                banco,
+                nameof(banco),
+                "Informe o banco. ");
 
             if (!Enum.IsDefined(typeof(TipoConta), tipo))
             {
@@ -42,8 +40,6 @@ namespace JKCASH.Domain.Entidades
 
             }
             Id = Guid.NewGuid();
-            Nome = nome.Trim();
-            Banco = banco.Trim();
             Tipo = tipo;
             Destinacao = destinacao;
             Saldo = new Saldo(
@@ -62,14 +58,37 @@ namespace JKCASH.Domain.Entidades
         public Saldo Saldo { get; private set; } = null!;
         public bool Ativa {  get; private set; }
 
+       private void ValidarContaAtiva()
+        {
+            if(!Ativa)
+            {
+                throw new InvalidOperationException(
+                    "Não é possivel movimentar uma conta desativada. ");
+            }
+        }
+
+        public void ValidarSaida(decimal valor)
+        {
+            ValidarContaAtiva();
+            Saldo.ValidarDebito(valor);
+        }
+        public void Creditar(decimal valor)
+        {
+            ValidarContaAtiva();
+            Saldo.Creditar(valor);
+        }
+
+        public void Debitar(decimal valor)
+        {
+            ValidarContaAtiva();
+            Saldo.Debitar(valor);
+        }
         public void AlterarNome(string novoNome)
         {
-            if(string.IsNullOrWhiteSpace(novoNome))
-            {
-                throw new ArgumentException(
-                    "Informe o nome da conta. ");
-            }
-            Nome = novoNome;
+            Nome = ValidarTextoObrigatorio(
+                novoNome,
+                nameof(novoNome),
+                "Informe o nome da conta. ");
         }
         public void Desativar()
         {
@@ -95,5 +114,18 @@ namespace JKCASH.Domain.Entidades
             Ativa = true;
         }
 
+        private static string ValidarTextoObrigatorio(
+            string texto,
+            string parametro,
+            string mensagem)
+        {
+            if(string.IsNullOrWhiteSpace(texto))
+            {
+                throw new ArgumentException(mensagem, parametro);
+            }
+            return texto.Trim();
+        }
     }
+    
+
 }

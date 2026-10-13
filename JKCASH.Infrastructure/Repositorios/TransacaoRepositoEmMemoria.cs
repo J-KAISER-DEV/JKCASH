@@ -2,9 +2,10 @@
 using System.Collections.Generic;
 using System.Text;
 using JKCASH.Domain.Entidades;
+using JKCASH.Application.Interfaces;
 namespace JKCASH.Infrastructure.Repositorios
 {
-    public class TransacaoRepositoEmMemoria
+    public class TransacaoRepositoEmMemoria : ITransacaoRepositorio
     {
         private readonly Dictionary<Guid, Transacao> _transacoes = new();
         
@@ -27,6 +28,19 @@ namespace JKCASH.Infrastructure.Repositorios
         public List<Transacao> ListarTodas()
         {
             return _transacoes.Values.ToList();
+        }
+
+        public List<Transacao> ListarPorConta(Guid contaid)
+        {
+            List<Transacao> resultado = new();
+            foreach (Transacao transacao in _transacoes.Values)
+            {
+                if (transacao.ContaId == contaid)
+                {
+                    resultado.Add(transacao);
+                }
+            }
+            return resultado;
         }
     }
 }

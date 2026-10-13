@@ -47,18 +47,22 @@ namespace JKCASH.Domain.ObjetosDeValor
             ValidarValorPositivo(valor);
             SaldoAtual += valor;
         }
-        internal void Debitar(decimal valor)
+        internal void ValidarDebito(decimal valor)
         {
             ValidarValorPositivo(valor);
-            decimal novoSaldo = SaldoAtual - valor;
 
-            if(novoSaldo < -LimiteChequeEspecial)
+            if(valor > DisponivelComChequeEspecial)
             {
                 throw new ArgumentException(
                     "Saldo e cheque especial insuficiente. ");
                
             }
-            SaldoAtual = novoSaldo;
+        }
+
+        internal void Debitar(decimal valor)
+        {
+            ValidarDebito(valor);
+            SaldoAtual -= valor;
         }
 
         internal void AlterarLimiteChequeEspecial(
