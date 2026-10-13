@@ -3,7 +3,8 @@ using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
 using JKCASH.Infrastructure.Repositorios;
 using JKCASH.Application.Servicos;
-
+using Microsoft.Data.SqlClient;
+using JKCASH.Infrastructure.Persistencia;
 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
 // Uma única instância de cada repositório mantém os dados entre as opções do menu.
 ContaRepositorioEmMemoria contas = new();
@@ -57,6 +58,15 @@ static void ListarTransacoesPorConta(
 }
 contaTeste.Creditar(50m);
 contaTeste.Debitar(30m);
+try
+{
+    ConexaoSql.Testar();
+    Console.WriteLine("Conexão com JKCASHDb realizada!");
+}
+catch (SqlException erro)
+{
+    Console.WriteLine($"Falha na conexão: {erro.Message}");
+}
 
 Console.WriteLine($"Saldo do teste: {contaTeste.Saldo.SaldoAtual:C2}");
 // while repete o menu. return encerra o programa.
