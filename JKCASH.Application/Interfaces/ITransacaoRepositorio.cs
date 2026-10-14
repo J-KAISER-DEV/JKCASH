@@ -7,6 +7,10 @@ namespace JKCASH.Application.Interfaces
 {
     public interface ITransacaoRepositorio
     {
-        void Adicionar(Transacao transacao);
+        // A transação e o saldo movimentado devem ser salvos juntos.
+        void Adicionar(Transacao transacao, Conta conta);
+        Transacao? BuscarPorId(Guid id);
+        List<Transacao> ListarTodas();
+        List<Transacao> ListarPorConta(Guid contaId);
     }
 }

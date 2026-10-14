@@ -58,6 +58,59 @@ namespace JKCASH.Domain.Entidades
         public Saldo Saldo { get; private set; } = null!;
         public bool Ativa {  get; private set; }
 
+        public static Conta Restaurar(
+            Guid id,
+            string nome,
+            string banco,
+            TipoConta tipo,
+            DestinacaoConta destinacao,
+            decimal saldoInicial,
+            decimal saldoAtual,
+            decimal limiteChequeEspecial,
+            bool ativa)
+        {
+            if (id == Guid.Empty)
+            {
+                throw new ArgumentException
+                    ("Informe o identificador da conta", nameof (id));
+            }
+
+            if(!Enum.IsDefined(typeof(TipoConta),tipo))
+            {
+                throw new ArgumentException
+                    ("Tipo de conta invalido", nameof(tipo))    ;
+            }
+            if (!Enum.IsDefined(typeof(DestinacaoConta), destinacao))
+            {
+                throw new ArgumentException
+                    ("Destinacao Invalida", nameof(destinacao));
+            }
+
+            Conta conta = new Conta();
+
+            conta.Id = id;
+
+            conta.Nome = ValidarTextoObrigatorio(
+                nome, nameof(nome), "Informe o nome da conta");
+
+            conta.Banco = ValidarTextoObrigatorio(
+                banco, nameof(banco), "Informe o nome do banco");
+
+            conta.Tipo = tipo;
+            conta.Destinacao = destinacao;
+
+            conta.Saldo =
+            Saldo.Restaurar(
+                saldoInicial,
+                saldoAtual,
+                limiteChequeEspecial);
+
+            conta.Ativa = ativa;
+            return conta;
+
+        }
+
+
        private void ValidarContaAtiva()
         {
             if(!Ativa)

@@ -1,20 +1,21 @@
-using System.Globalization;
+﻿using System.Globalization;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
 using JKCASH.Infrastructure.Persistencia;
 using JKCASH.Infrastructure.Repositorios;
 using Microsoft.Data.SqlClient;
-
+using JKCASH.Application.Interfaces;
+using Microsoft.EntityFrameworkCore;
 // 1. INICIALIZAÇÃO — executada uma vez ao abrir o programa.
 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("pt-BR");
 
-ContaRepositorioEmMemoria contas = new();
-CategoriaRepositorioEmMemoria categorias = new();
-TransacaoRepositoEmMemoria transacoes = new();
+IContaRepositorio contas = new ContaRepositorioSql();
+ICategoriaRepositorio categorias = new CategoriaRepositorioSql();
+ITransacaoRepositorio transacoes = new TransacaoRepositorioSql();
 TransacaoServico servico = new(transacoes,categorias);
 
-Console.WriteLine("JKCASH — dados em memória, apagados ao encerrar.");
+Console.WriteLine("JKCASH — contas, categorias e transações salvas no SQL.");
 TestarConexaoBanco();
 
 // 2. MENU — repete até escolher Sair. Cada opção chama uma função abaixo.
@@ -76,6 +77,20 @@ while (true)
         Console.WriteLine("Entrada encerrada.");
         return;
     }
+    catch (DbUpdateException erro) when (
+        erro.InnerException is SqlException sqlErro &&
+        (sqlErro.Number == 2601 || sqlErro.Number == 2627))
+    {
+        Console.WriteLine("Já existe uma conta com esse nome e banco, ou uma categoria com esse nome.");
+    }
+    catch (DbUpdateException erro)
+    {
+        Console.WriteLine($"Não foi possível salvar no banco: {erro.GetBaseException().Message}");
+    }
+    catch(SqlException erro)
+    {
+        Console.WriteLine($"Nao foi possivel acessar o banco: {erro.Message}");
+    }
 }
 
 static void MostrarMenu()
@@ -93,7 +108,7 @@ static void MostrarMenu()
 }
 
 // 3. CONTAS — cadastro e consulta.
-static void CadastrarConta(ContaRepositorioEmMemoria repositorio)
+static void CadastrarConta(IContaRepositorio repositorio)
 {
     string nome = LerTexto("Nome da conta: ");
     string banco = LerTexto("Banco: ");
@@ -108,7 +123,7 @@ static void CadastrarConta(ContaRepositorioEmMemoria repositorio)
     Console.WriteLine($"Conta cadastrada! Id: {conta.Id}");
 }
 
-static void ListarContas(ContaRepositorioEmMemoria repositorio)
+static void ListarContas(IContaRepositorio repositorio)
 {
     List<Conta> lista = repositorio.ListarTodas();
 
@@ -138,7 +153,7 @@ static Conta SelecionarConta(List<Conta> lista)
 }
 
 // 4. CATEGORIAS — cadastro, consulta e seleção.
-static void CadastrarCategoria(CategoriaRepositorioEmMemoria repositorio)
+static void CadastrarCategoria(ICategoriaRepositorio repositorio)
 {
     string nome = LerTexto("Nome da categoria: ");
     Categoria categoria = new(nome);
@@ -147,7 +162,7 @@ static void CadastrarCategoria(CategoriaRepositorioEmMemoria repositorio)
     Console.WriteLine($"Categoria cadastrada: {categoria.Nome}");
 }
 
-static void ListarCategorias(CategoriaRepositorioEmMemoria repositorio)
+static void ListarCategorias(ICategoriaRepositorio repositorio)
 {
     List<Categoria> lista = repositorio.ListarTodas();
 
@@ -176,8 +191,8 @@ static Categoria SelecionarCategoria(List<Categoria> lista)
 
 // 5. TRANSAÇÕES — o menu coleta dados; o serviço registra e movimenta o saldo.
 static void RegistrarTransacao(
-    ContaRepositorioEmMemoria contas,
-    CategoriaRepositorioEmMemoria categorias,
+    IContaRepositorio contas,
+    ICategoriaRepositorio categorias,
     TransacaoServico servico)
 {
     List<Conta> listaContas = contas.ListarTodas();
@@ -211,6 +226,8 @@ static void RegistrarTransacao(
         conta.ValidarSaida(valor);
     }
     ImportanciaTransacao importancia = LerOpcao<ImportanciaTransacao>();
+    PlanejamentoTransacao planejamento = LerOpcao<PlanejamentoTransacao>();
+    UrgenciaTransacao urgencia = LerOpcao<UrgenciaTransacao>();
     Categoria categoria = SelecionarCategoria(listaCategorias);
     string descricao = LerTexto("Descrição: ");
     DateTime data = LerData("Data (dd/MM/aaaa): ");
@@ -218,13 +235,13 @@ static void RegistrarTransacao(
     "Por que você está realizando esta transação? ");
 
     Transacao transacao = servico.Registrar(
-        conta, tipo, valor, descricao, data, categoria.Id,importancia,justificativa);
+        conta, tipo, valor, descricao, data, categoria.Id,importancia,planejamento,urgencia,justificativa);
 
     Console.WriteLine($"Transação registrada! Id: {transacao.Id}");
     Console.WriteLine($"Saldo atualizado: {conta.Saldo.SaldoAtual:C2}");
 }
 
-static void ListarTransacoes(TransacaoRepositoEmMemoria repositorio)
+static void ListarTransacoes(ITransacaoRepositorio repositorio)
 {
     List<Transacao> lista = repositorio.ListarTodas();
     Console.WriteLine($"Transações cadastradas: {lista.Count}");
@@ -235,7 +252,7 @@ static void ListarTransacoes(TransacaoRepositoEmMemoria repositorio)
     }
 }
 
-static void BuscarTransacao(TransacaoRepositoEmMemoria repositorio)
+static void BuscarTransacao(ITransacaoRepositorio repositorio)
 {
     string texto = LerTexto("Id da transação: ");
 
@@ -256,8 +273,8 @@ static void BuscarTransacao(TransacaoRepositoEmMemoria repositorio)
 }
 
 static void ListarTransacoesPorConta(
-    ContaRepositorioEmMemoria contas,
-    TransacaoRepositoEmMemoria transacoes)
+    IContaRepositorio contas,
+    ITransacaoRepositorio transacoes)
 {
     List<Conta> lista = contas.ListarTodas();
 
@@ -284,7 +301,7 @@ static void MostrarTransacao(Transacao transacao)
         $"{transacao.Data:dd/MM/yyyy} | {transacao.Tipo} | " +
         $"CategoriaId: {transacao.CategoriaId} | " +
         $"{transacao.Valor:C2} | {transacao.Descricao}");
-    Console.WriteLine($"Id: {transacao.Id} | ContaId: {transacao.ContaId} | Importancia {transacao.Importancia} | Justificativa: {transacao.Justificativa}");
+    Console.WriteLine($"Id: {transacao.Id} | ContaId: {transacao.ContaId} | Importancia {transacao.Importancia} | Planejada? {transacao.Planejamento} | Urgencia: {transacao.Urgencia} Justificativa: {transacao.Justificativa}");
 }
 
 // 6. LEITURA — funções auxiliares usadas pelas opções do menu.
@@ -358,7 +375,7 @@ static T LerOpcao<T>() where T : struct, Enum
     return escolha;
 }
 
-// 7. BANCO — apenas teste de conexão; os cadastros ainda usam memória.
+// 7. BANCO — verifica a conexão usada pelos repositórios SQL.
 static void TestarConexaoBanco()
 {
     try

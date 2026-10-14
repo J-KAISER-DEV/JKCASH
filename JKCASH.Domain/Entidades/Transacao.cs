@@ -5,6 +5,7 @@ using System.Text;
 
 namespace JKCASH.Domain.Entidades
 {
+
     public sealed class Transacao
     {
         public Guid Id { get; private set; }
@@ -15,7 +16,11 @@ namespace JKCASH.Domain.Entidades
         public DateTime Data {  get; private set; }
         public Guid CategoriaId { get; private set; }
         public ImportanciaTransacao Importancia { get; private set; }
-        public string Justificativa { get; private set; }
+        public PlanejamentoTransacao? Planejamento { get; private set; }
+        public UrgenciaTransacao? Urgencia { get; private set; }
+        public string Justificativa { get; private set; } = string.Empty;
+
+        private Transacao() { }
 
         public Transacao(
         Guid contaId,
@@ -25,6 +30,8 @@ namespace JKCASH.Domain.Entidades
         DateTime data,
         Guid categoriaId,
         ImportanciaTransacao importancia,
+        PlanejamentoTransacao planejamento,
+        UrgenciaTransacao urgencia,
         string justificativa)
         {
             if (contaId == Guid.Empty)
@@ -60,7 +67,20 @@ namespace JKCASH.Domain.Entidades
                 throw new ArgumentException(
                     "Importancia invalida",nameof(importancia));
             }
-            if(string.IsNullOrWhiteSpace(justificativa))
+
+            if (!Enum.IsDefined(typeof(PlanejamentoTransacao), planejamento))
+            {
+                throw new ArgumentException(
+                    "Planejamento invalido", nameof(planejamento));
+            }
+
+            if (!Enum.IsDefined(typeof(UrgenciaTransacao), urgencia))
+            {
+                throw new ArgumentException(
+                    "Urgencia invalida", nameof(urgencia));
+            }
+
+            if (string.IsNullOrWhiteSpace(justificativa))
             {
                 throw new ArgumentException(
                     "informe a justificativa da transação",
@@ -74,6 +94,8 @@ namespace JKCASH.Domain.Entidades
             Data = data;
            CategoriaId = categoriaId;
             Importancia = importancia;
+            Planejamento = planejamento;
+            Urgencia = urgencia;
             Justificativa = justificativa;
         }
     }

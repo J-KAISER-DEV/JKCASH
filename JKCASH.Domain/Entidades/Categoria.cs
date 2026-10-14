@@ -8,16 +8,29 @@ namespace JKCASH.Domain.Entidades
     {
         public Guid Id { get; private set; }
         public string Nome { get; private set; }
-        
+
         public Categoria(string nome)
+             : this(Guid.NewGuid(), nome) { }
+
+        private Categoria(Guid id, string nome)
         {
-            if(string.IsNullOrWhiteSpace(nome))
+            if (id == Guid.Empty)
             {
-                throw new ArgumentNullException(
-                    "Informe o nome da categoria", nameof(nome));
+                throw new ArgumentException
+                    ("Informe o identificador da categoria", nameof(id));
             }
-            Id = Guid.NewGuid();
+
+            if (string.IsNullOrWhiteSpace(nome))
+            {
+                throw new ArgumentException
+                    ("Informe o nome da categoria", nameof (nome));
+            }
+            Id = id;
             Nome = nome.Trim();
+        }
+        public static Categoria Restaurar(Guid id, string nome)
+        {
+            return new Categoria(id, nome);
         }
     }
 }

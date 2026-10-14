@@ -45,4 +45,18 @@ namespace JKCASH.Domain.Enums
         Moradia = 7,
         Salario = 8
     }
+
+    public enum PlanejamentoTransacao
+    {
+        Planejada = 1,
+        NaoPlanejada = 2,
+    }
+
+    public enum UrgenciaTransacao
+    {
+        SemUrgencia = 1,
+        Moderada = 2,
+        Urgente = 3
+    }
+
 }

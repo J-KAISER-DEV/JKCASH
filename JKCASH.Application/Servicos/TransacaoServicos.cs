@@ -30,6 +30,8 @@ namespace JKCASH.Application.Servicos
             DateTime data,
             Guid categoriaId,
             ImportanciaTransacao importancia,
+            PlanejamentoTransacao planejamento,
+            UrgenciaTransacao urgencia,
             string justificativa)
         {
             if(!_categorias.Existe(categoriaId))
@@ -48,6 +50,8 @@ namespace JKCASH.Application.Servicos
                 data,
                 categoriaId,
                 importancia,
+                planejamento,
+                urgencia,
                 justificativa);
 
             if (transacao.Tipo == TipoTransacao.Entrada)
@@ -58,7 +62,20 @@ namespace JKCASH.Application.Servicos
             {
                 conta.Debitar(transacao.Valor);
             }
-            _repositorio.Adicionar(transacao);
+            try
+            {
+                _repositorio.Adicionar(transacao, conta);
+            }
+            catch
+            {
+                // Se não salvou, desfaz também a movimentação do objeto em memória.
+                if (transacao.Tipo == TipoTransacao.Entrada)
+                    conta.Debitar(transacao.Valor);
+                else
+                    conta.Creditar(transacao.Valor);
+
+                throw;
+            }
             return transacao;
         }
     }

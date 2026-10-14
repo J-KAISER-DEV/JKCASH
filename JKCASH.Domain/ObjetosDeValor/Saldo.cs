@@ -42,6 +42,35 @@ namespace JKCASH.Domain.ObjetosDeValor
         public decimal DisponivelComChequeEspecial =>
             SaldoAtual + LimiteChequeEspecial;
 
+        internal static Saldo Restaurar(
+            decimal saldoInicial,
+            decimal saldoAtual,
+            decimal limiteChequeEspecial)
+        {
+            ValidarValorMonetario(
+                saldoInicial, nameof(saldoInicial), true);
+
+            ValidarValorMonetario(
+                saldoAtual, nameof(saldoAtual), true);
+
+            ValidarValorMonetario(
+                limiteChequeEspecial, nameof(limiteChequeEspecial), false);
+
+            if(saldoAtual < -limiteChequeEspecial)
+            {
+                throw new ArgumentException(
+                    "O saldo atual ultrapassa o cheque especial",
+                    nameof(saldoAtual));
+            }
+            Saldo saldo = new Saldo();
+
+            saldo.SaldoInicial = saldoInicial;
+            saldo.SaldoAtual = saldoAtual;
+            saldo.LimiteChequeEspecial = limiteChequeEspecial;
+
+            return saldo;
+
+        }
         internal void Creditar(decimal valor)
         {
             ValidarValorPositivo(valor);

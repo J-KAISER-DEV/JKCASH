@@ -8,6 +8,18 @@ namespace JKCASH.Infrastructure.Repositorios
     public class TransacaoRepositoEmMemoria : ITransacaoRepositorio
     {
         private readonly Dictionary<Guid, Transacao> _transacoes = new();
+
+        public void Adicionar(Transacao transacao, Conta conta)
+        {
+            ArgumentNullException.ThrowIfNull(transacao);
+            ArgumentNullException.ThrowIfNull(conta);
+
+            if (transacao.ContaId != conta.Id)
+                throw new ArgumentException("A transação pertence a outra conta.");
+
+            // Na memória, a conta recebida pelo serviço já foi movimentada.
+            Adicionar(transacao);
+        }
         
         public void Adicionar(Transacao transacao)
         {
