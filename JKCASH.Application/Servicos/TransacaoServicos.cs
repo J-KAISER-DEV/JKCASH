@@ -9,13 +9,17 @@ namespace JKCASH.Application.Servicos
 {
     public class TransacaoServico
     {
+        private readonly ICategoriaRepositorio _categorias;
         private readonly ITransacaoRepositorio _repositorio;
 
-        public TransacaoServico(ITransacaoRepositorio repositorio)
+        public TransacaoServico(ITransacaoRepositorio repositorio,
+            ICategoriaRepositorio categorias)
         {
             ArgumentNullException.ThrowIfNull(repositorio);
+            ArgumentNullException.ThrowIfNull(categorias);
 
             _repositorio = repositorio;
+            _categorias = categorias;
         }
 
         public Transacao Registrar(
@@ -24,8 +28,16 @@ namespace JKCASH.Application.Servicos
             decimal valor,
             string descricao,
             DateTime data,
-            CategoriaTransacao categoria)
+            Guid categoriaId,
+            ImportanciaTransacao importancia,
+            string justificativa)
         {
+            if(!_categorias.Existe(categoriaId))
+            {
+                throw new ArgumentException(
+                    "A categoria informada nao esta cadastrada",
+                    nameof(categoriaId));
+            }
             ArgumentNullException.ThrowIfNull(conta);
 
             Transacao transacao = new(
@@ -34,7 +46,9 @@ namespace JKCASH.Application.Servicos
                 valor,
                 descricao,
                 data,
-                categoria);
+                categoriaId,
+                importancia,
+                justificativa);
 
             if (transacao.Tipo == TipoTransacao.Entrada)
             {

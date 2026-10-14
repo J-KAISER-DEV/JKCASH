@@ -13,7 +13,9 @@ namespace JKCASH.Domain.Entidades
         public decimal Valor { get; private set; }
         public string Descricao { get; private set; } = string.Empty;
         public DateTime Data {  get; private set; }
-        public CategoriaTransacao Categoria { get; private set; }
+        public Guid CategoriaId { get; private set; }
+        public ImportanciaTransacao Importancia { get; private set; }
+        public string Justificativa { get; private set; }
 
         public Transacao(
         Guid contaId,
@@ -21,7 +23,9 @@ namespace JKCASH.Domain.Entidades
         decimal valor,
         string descricao,
         DateTime data,
-        CategoriaTransacao categoria)
+        Guid categoriaId,
+        ImportanciaTransacao importancia,
+        string justificativa)
         {
             if (contaId == Guid.Empty)
             {
@@ -46,19 +50,31 @@ namespace JKCASH.Domain.Entidades
                 throw new ArgumentException(
                     "Informe a descrição", nameof (descricao));
             }
-            if(!Enum.IsDefined(typeof(CategoriaTransacao),categoria))
+            if(categoriaId == Guid.Empty)
             {
                 throw new ArgumentException(
-                    "Categoria Invalida. ", nameof(categoria));
+                    "Informe o identificador da categoria", nameof(categoriaId));
             }
-
+            if(!Enum.IsDefined(typeof(ImportanciaTransacao),importancia))
+            {
+                throw new ArgumentException(
+                    "Importancia invalida",nameof(importancia));
+            }
+            if(string.IsNullOrWhiteSpace(justificativa))
+            {
+                throw new ArgumentException(
+                    "informe a justificativa da transação",
+                    nameof(justificativa));
+            }
             Id = Guid.NewGuid();
             ContaId = contaId;
             Tipo = tipo;
             Valor = valor;
             Descricao = descricao;
             Data = data;
-            Categoria = categoria;
+           CategoriaId = categoriaId;
+            Importancia = importancia;
+            Justificativa = justificativa;
         }
     }
 }
