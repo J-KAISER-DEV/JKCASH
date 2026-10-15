@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
-
+using JKCASH.Domain.Validacoes;
 namespace JKCASH.Domain.ObjetosDeValor
 {
     public sealed class Saldo
@@ -14,10 +14,10 @@ namespace JKCASH.Domain.ObjetosDeValor
             decimal limiteChequeEspecial = 0m
             )
         {
-            ValidarValorMonetario(
+            Validacao.ValorMonetario(
                 saldoInicial, nameof(saldoInicial), true);
 
-            ValidarValorMonetario(
+            Validacao.ValorMonetario(
                 limiteChequeEspecial, nameof(limiteChequeEspecial), false);
 
             if (saldoInicial < -limiteChequeEspecial)
@@ -47,13 +47,13 @@ namespace JKCASH.Domain.ObjetosDeValor
             decimal saldoAtual,
             decimal limiteChequeEspecial)
         {
-            ValidarValorMonetario(
+            Validacao.ValorMonetario(
                 saldoInicial, nameof(saldoInicial), true);
 
-            ValidarValorMonetario(
+            Validacao.ValorMonetario(
                 saldoAtual, nameof(saldoAtual), true);
 
-            ValidarValorMonetario(
+            Validacao.ValorMonetario(
                 limiteChequeEspecial, nameof(limiteChequeEspecial), false);
 
             if(saldoAtual < -limiteChequeEspecial)
@@ -73,14 +73,14 @@ namespace JKCASH.Domain.ObjetosDeValor
         }
         internal void Creditar(decimal valor)
         {
-            ValidarValorPositivo(valor);
+            Validacao.ValorMonetarioPositivo(valor,nameof(valor));
             SaldoAtual += valor;
         }
         internal void ValidarDebito(decimal valor)
         {
-            ValidarValorPositivo(valor);
+            Validacao.ValorMonetarioPositivo(valor, nameof(valor));
 
-            if(valor > DisponivelComChequeEspecial)
+            if (valor > DisponivelComChequeEspecial)
             {
                 throw new ArgumentException(
                     "Saldo e cheque especial insuficiente. ");
@@ -97,7 +97,7 @@ namespace JKCASH.Domain.ObjetosDeValor
         internal void AlterarLimiteChequeEspecial(
             decimal novoLimite)
         {
-            ValidarValorMonetario(
+            Validacao.ValorMonetario(
                 novoLimite, nameof(novoLimite), false);
 
             if(SaldoAtual < -novoLimite)
@@ -109,28 +109,7 @@ namespace JKCASH.Domain.ObjetosDeValor
             LimiteChequeEspecial = novoLimite;
         }
 
-        private static void ValidarValorPositivo(decimal valor)
-        {
-            ValidarValorMonetario(valor, nameof(valor), false);
-            if( valor == 0m)
-            {
-                throw new ArgumentException(
-                    "O valor deve ser maior que zero. ");
-            }
-        }
-        private static void ValidarValorMonetario(
-            decimal valor,
-            string nome,
-            bool permitirNegativo
-            )
-        {
-            if((!permitirNegativo && valor < 0m) 
-                || valor != decimal.Round(valor,2 ))
-            {
-                throw new ArgumentException(
-                    $"O valor de {nome} é invalido. " +
-                    "Utilize no maximo duas casa decimais.");
-            }
-        }
+
+      
     }
 }

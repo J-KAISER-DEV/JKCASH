@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-
+using JKCASH.Domain.Validacoes;
 namespace JKCASH.Domain.Entidades
 {
 
@@ -34,58 +34,19 @@ namespace JKCASH.Domain.Entidades
         UrgenciaTransacao urgencia,
         string justificativa)
         {
-            if (contaId == Guid.Empty)
-            {
-                throw new ArgumentNullException(
-                    "Informe o identificador da conta. ",nameof(contaId));
-            }
+            Validacao.GuidNaoVazio(contaId, nameof(contaId));
+            Validacao.EnumValido(tipo, nameof(tipo));
+            
+            Validacao.ValorMonetarioPositivo(valor, nameof(valor));
+            Validacao.TextoObrigatorio(descricao, nameof(descricao),200);
 
-            if(!Enum.IsDefined(typeof(TipoTransacao),tipo))
-            {
-                throw new ArgumentException(
-                    "Tipo de transação invalido. ", nameof(tipo));
-            }
+            Validacao.GuidNaoVazio(categoriaId, nameof(categoriaId));
+            Validacao.EnumValido(importancia, nameof(importancia));
+            Validacao.EnumValido(planejamento, nameof(planejamento));
+            Validacao.EnumValido(urgencia, nameof(urgencia));
 
-            if(valor <= 0m || valor != decimal.Round(valor,2))
-            {
-                throw new ArgumentException(
-                    "O valor deve ser positivo e ter no maximo duas casa decimais. ",
-                    nameof(valor));
-            }
-            if(string.IsNullOrWhiteSpace(descricao))
-            {
-                throw new ArgumentException(
-                    "Informe a descrição", nameof (descricao));
-            }
-            if(categoriaId == Guid.Empty)
-            {
-                throw new ArgumentException(
-                    "Informe o identificador da categoria", nameof(categoriaId));
-            }
-            if(!Enum.IsDefined(typeof(ImportanciaTransacao),importancia))
-            {
-                throw new ArgumentException(
-                    "Importancia invalida",nameof(importancia));
-            }
-
-            if (!Enum.IsDefined(typeof(PlanejamentoTransacao), planejamento))
-            {
-                throw new ArgumentException(
-                    "Planejamento invalido", nameof(planejamento));
-            }
-
-            if (!Enum.IsDefined(typeof(UrgenciaTransacao), urgencia))
-            {
-                throw new ArgumentException(
-                    "Urgencia invalida", nameof(urgencia));
-            }
-
-            if (string.IsNullOrWhiteSpace(justificativa))
-            {
-                throw new ArgumentException(
-                    "informe a justificativa da transação",
-                    nameof(justificativa));
-            }
+            Validacao.TextoObrigatorio(justificativa, nameof(justificativa),500);
+          
             Id = Guid.NewGuid();
             ContaId = contaId;
             Tipo = tipo;

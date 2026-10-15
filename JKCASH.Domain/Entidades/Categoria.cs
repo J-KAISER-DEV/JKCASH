@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
+using JKCASH.Domain.Validacoes;
 namespace JKCASH.Domain.Entidades
 {
     public sealed class Categoria
@@ -14,17 +14,8 @@ namespace JKCASH.Domain.Entidades
 
         private Categoria(Guid id, string nome)
         {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException
-                    ("Informe o identificador da categoria", nameof(id));
-            }
-
-            if (string.IsNullOrWhiteSpace(nome))
-            {
-                throw new ArgumentException
-                    ("Informe o nome da categoria", nameof (nome));
-            }
+            Validacao.GuidNaoVazio(id, nameof(id));
+            Validacao.TextoObrigatorio(nome, nameof(nome),100);
             Id = id;
             Nome = nome.Trim();
         }

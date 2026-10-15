@@ -3,7 +3,7 @@ using JKCASH.Domain.ObjetosDeValor;
 using System;
 using System.Collections.Generic;
 using System.Text;
-
+using JKCASH.Domain.Validacoes;
 namespace JKCASH.Domain.Entidades
 {
     public sealed class Conta
@@ -17,28 +17,10 @@ namespace JKCASH.Domain.Entidades
             decimal saldoInicial = 0m,
             decimal limiteChequeEspecial = 0m)
         {
-            Nome = ValidarTextoObrigatorio(
-                nome,
-                nameof(nome),
-                "Informe o nome da conta. ");
-
-            Banco = ValidarTextoObrigatorio(
-                banco,
-                nameof(banco),
-                "Informe o banco. ");
-
-            if (!Enum.IsDefined(typeof(TipoConta), tipo))
-            {
-                throw new ArgumentException(
-                    "Tipo de conta invalido. ");
-
-            }
-            if (!Enum.IsDefined(typeof(DestinacaoConta), destinacao))
-            {
-                throw new ArgumentException(
-                    "Destinação de conta invalido. ");
-
-            }
+            Validacao.TextoObrigatorio(nome,nameof (nome),100);
+            Validacao.TextoObrigatorio(banco,nameof (banco),100);
+            Validacao.EnumValido(tipo, nameof (tipo));
+            Validacao.EnumValido(destinacao, nameof(destinacao));
             Id = Guid.NewGuid();
             Tipo = tipo;
             Destinacao = destinacao;
@@ -46,6 +28,8 @@ namespace JKCASH.Domain.Entidades
                 saldoInicial,
                 limiteChequeEspecial);
             Ativa = true;
+            Nome = nome.Trim();
+            Banco = banco.Trim();
 
         }
         
@@ -69,32 +53,19 @@ namespace JKCASH.Domain.Entidades
             decimal limiteChequeEspecial,
             bool ativa)
         {
-            if (id == Guid.Empty)
-            {
-                throw new ArgumentException
-                    ("Informe o identificador da conta", nameof (id));
-            }
-
-            if(!Enum.IsDefined(typeof(TipoConta),tipo))
-            {
-                throw new ArgumentException
-                    ("Tipo de conta invalido", nameof(tipo))    ;
-            }
-            if (!Enum.IsDefined(typeof(DestinacaoConta), destinacao))
-            {
-                throw new ArgumentException
-                    ("Destinacao Invalida", nameof(destinacao));
-            }
-
+            Validacao.GuidNaoVazio(id, nameof(id));
+            
+            Validacao.EnumValido(tipo, nameof(tipo));
+            Validacao.EnumValido(destinacao, nameof(destinacao));
             Conta conta = new Conta();
 
             conta.Id = id;
 
-            conta.Nome = ValidarTextoObrigatorio(
-                nome, nameof(nome), "Informe o nome da conta");
+            Validacao.TextoObrigatorio(nome, nameof(nome),100);
+            conta.Nome = nome.Trim();
 
-            conta.Banco = ValidarTextoObrigatorio(
-                banco, nameof(banco), "Informe o nome do banco");
+            Validacao.TextoObrigatorio(banco, nameof(banco),100);
+            conta.Banco = banco.Trim();
 
             conta.Tipo = tipo;
             conta.Destinacao = destinacao;
@@ -138,10 +109,8 @@ namespace JKCASH.Domain.Entidades
         }
         public void AlterarNome(string novoNome)
         {
-            Nome = ValidarTextoObrigatorio(
-                novoNome,
-                nameof(novoNome),
-                "Informe o nome da conta. ");
+            Validacao.TextoObrigatorio(novoNome, nameof(novoNome),100);
+            Nome = novoNome.Trim();
         }
         public void Desativar()
         {
@@ -149,12 +118,8 @@ namespace JKCASH.Domain.Entidades
         }
         public void AlterarBanco(string novoBanco)
         {
-            if (string.IsNullOrWhiteSpace(novoBanco))
-            {
-                throw new ArgumentException(
-                    "Informe o banco.");
-            }
 
+            Validacao.TextoObrigatorio(novoBanco, nameof(novoBanco),100);
             Banco = novoBanco.Trim();
         }
 
@@ -167,17 +132,7 @@ namespace JKCASH.Domain.Entidades
             Ativa = true;
         }
 
-        private static string ValidarTextoObrigatorio(
-            string texto,
-            string parametro,
-            string mensagem)
-        {
-            if(string.IsNullOrWhiteSpace(texto))
-            {
-                throw new ArgumentException(mensagem, parametro);
-            }
-            return texto.Trim();
-        }
+       
     }
     
 

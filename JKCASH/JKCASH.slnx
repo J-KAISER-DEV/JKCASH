@@ -2,5 +2,6 @@
   <Project Path="../JKCASH.Application/JKCASH.Application.csproj" Id="4de60b9c-3f42-4a0c-b935-257094ae2317" />
   <Project Path="../JKCASH.Domain/JKCASH.Domain.csproj" Id="e2a55c3b-f547-438e-8b6e-1f1ad90419b3" />
   <Project Path="../JKCASH.Infrastructure/JKCASH.Infrastructure.csproj" Id="093083bb-6f3b-4602-af35-e90748d1d6c7" />
+  <Project Path="../JKCASH.TestesManuais/JKCASH.TestesManuais.csproj" Id="0de66cb0-f08b-49ef-bac4-6ee5097304a7" />
   <Project Path="JKCASH.csproj" />
 </Solution>
