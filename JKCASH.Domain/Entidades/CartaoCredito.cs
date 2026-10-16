@@ -6,9 +6,10 @@ namespace JKCASH.Domain.Entidades
 {
     public sealed class CartaoCredito
     {
+
         public Guid Id { get; private set; }
         public Guid ContaId { get; private set; }
-        public string Nome { get; private set; }
+        public string Nome { get; private set; } = string.Empty;
         public decimal Limite { get; private set; }
         public decimal ValorUtilizado { get; private set; }
         
@@ -18,6 +19,7 @@ namespace JKCASH.Domain.Entidades
 
         public decimal LimiteDisponivel => Limite - ValorUtilizado;
 
+        private CartaoCredito() { }
         public CartaoCredito(
             Guid contaId,
             string nome,
@@ -27,7 +29,7 @@ namespace JKCASH.Domain.Entidades
             bool compraNoFechamentoNaProximaFatura = true)
         {
             Validacao.GuidNaoVazio(contaId, nameof(contaId));
-            Validacao.TextoObrigatorio(nome, nameof(nome));
+            Validacao.TextoObrigatorio(nome, nameof(nome),100);
             Validacao.ValorMonetarioPositivo(limite, nameof(limite));
             Validacao.InteiroNoIntervalo(
                 diaFechamento,1, 31, nameof(diaFechamento));

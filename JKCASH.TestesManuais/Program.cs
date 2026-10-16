@@ -9,3 +9,4 @@ TesteVinculoCartaoConta.Executar();
 TesteRepositorioCartao.Executar();
 TesteCompraCartao.Executar();
 TesteFaturasParcelasPagamentos.Executar();
+TesteCartaoCreditoSql.Executar();

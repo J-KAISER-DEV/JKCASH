@@ -10,13 +10,27 @@ namespace JKCASH.Menus
     {
         private readonly ICartaoCreditoRepositorio _repositorio;
         private readonly IContaRepositorio _contas;
+        private readonly MenuComprasCartao _compras;
 
-        public MenuCartao(ICartaoCreditoRepositorio repositorio, IContaRepositorio contas)
+        public MenuCartao(ICartaoCreditoRepositorio repositorio, IContaRepositorio contas,
+            MenuComprasCartao compras)
         {
             ArgumentNullException.ThrowIfNull(repositorio);
             ArgumentNullException.ThrowIfNull(contas);
+            ArgumentNullException.ThrowIfNull(compras);
             _repositorio = repositorio;
             _contas = contas;
+            _compras = compras;
+        }
+
+        public void Executar()
+        {
+            NavegacaoConsole.Executar("Cartões", "Voltar",
+                ("Cadastrar cartão", CadastrarCartao),
+                ("Listar cartões e limites", ListarCartoes),
+                ("Registrar compra à vista ou parcelada", _compras.RegistrarCompra),
+                ("Listar compras de um cartão", _compras.ListarCompras),
+                ("Buscar compra por Id", _compras.BuscarCompra));
         }
 
         public void CadastrarCartao()
@@ -24,7 +38,7 @@ namespace JKCASH.Menus
             List<Conta> contas = _contas.ListarTodas();
             if (contas.Count == 0)
             {
-                Console.WriteLine("Cadastre uma conta primeiro pela opção 1.");
+                Console.WriteLine("Cadastre uma conta em Contas > Cadastrar conta.");
                 return;
             }
 

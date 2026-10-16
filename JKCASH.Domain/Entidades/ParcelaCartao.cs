@@ -5,14 +5,21 @@ namespace JKCASH.Domain.Entidades;
 
 public sealed class ParcelaCartao
 {
-    public Guid Id { get; } = Guid.NewGuid();
-    public Guid CompraId { get; }
-    public Guid CartaoId { get; }
-    public int Numero { get; }
-    public int Quantidade { get; }
-    public decimal Valor { get; }
-    public CicloFatura Ciclo { get; }
+    public Guid Id { get; private set; } = Guid.NewGuid();
+    public Guid CompraId { get; private set; }
+    public Guid CartaoId { get; private set; }
+    public int Numero { get; private set; }
+    public int Quantidade { get; private set; }
+    public decimal Valor { get; private set; }
+    public CicloFatura Ciclo => Fatura?.Ciclo
+    ?? _ciclo
+    ?? throw new InvalidOperationException(
+        "O ciclo da parcela não está disponível.");
+    public Guid FaturaId { get; private set; }
+    public FaturaCartao? Fatura { get; private set; }
 
+    private CicloFatura? _ciclo;
+    private ParcelaCartao() { }
     internal ParcelaCartao(Guid compraId, Guid cartaoId, int numero, int quantidade,
         decimal valor, CicloFatura ciclo)
     {
@@ -25,6 +32,7 @@ public sealed class ParcelaCartao
         Numero = numero;
         Quantidade = quantidade;
         Valor = valor;
-        Ciclo = ciclo;
+        ArgumentNullException.ThrowIfNull(ciclo);
+        _ciclo = ciclo;
     }
 }

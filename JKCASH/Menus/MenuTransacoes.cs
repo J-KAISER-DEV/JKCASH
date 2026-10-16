@@ -29,6 +29,15 @@ namespace JKCASH.Menus
             _servico = servico;
         }
 
+        public void Executar()
+        {
+            NavegacaoConsole.Executar("Transações", "Voltar",
+                ("Registrar transação", RegistrarTransacao),
+                ("Listar todas as transações", ListarTransacoes),
+                ("Buscar transação por Id", BuscarTransacao),
+                ("Listar transações por conta", ListarTransacoesPorConta));
+        }
+
         public void RegistrarTransacao()
         {
             List<Conta> listaContas = _contas.ListarTodas();
@@ -36,13 +45,13 @@ namespace JKCASH.Menus
 
             if (listaContas.Count == 0)
             {
-                Console.WriteLine("Cadastre uma conta primeiro pela opção 1.");
+                Console.WriteLine("Cadastre uma conta em Contas > Cadastrar conta.");
                 return;
             }
 
             if (listaCategorias.Count == 0)
             {
-                Console.WriteLine("Cadastre uma categoria primeiro pela opção 7.");
+                Console.WriteLine("Cadastre uma categoria em Categorias > Cadastrar categoria.");
                 return;
             }
 

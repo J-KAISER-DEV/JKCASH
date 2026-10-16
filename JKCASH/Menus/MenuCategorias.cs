@@ -13,6 +13,13 @@ namespace JKCASH.Menus
             _repositorio = repositorio;
         }
 
+        public void Executar()
+        {
+            NavegacaoConsole.Executar("Categorias", "Voltar",
+                ("Cadastrar categoria", CadastrarCategoria),
+                ("Listar categorias", ListarCategorias));
+        }
+
         public void CadastrarCategoria()
         {
             string nome = LeituraConsole.LerTexto("Nome da categoria: ");

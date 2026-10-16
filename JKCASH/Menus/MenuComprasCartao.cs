@@ -1,4 +1,4 @@
-using JKCASH.Application.Interfaces;
+﻿using JKCASH.Application.Interfaces;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -15,6 +15,10 @@ public sealed class MenuComprasCartao
     public MenuComprasCartao(ICartaoCreditoRepositorio cartoes, ICategoriaRepositorio categorias,
         ICompraCartaoRepositorio compras, CompraCartaoServico servico)
     {
+        ArgumentNullException.ThrowIfNull(cartoes);
+        ArgumentNullException.ThrowIfNull(categorias);
+        ArgumentNullException.ThrowIfNull(compras);
+        ArgumentNullException.ThrowIfNull(servico);
         _cartoes = cartoes;
         _categorias = categorias;
         _compras = compras;
@@ -26,13 +30,13 @@ public sealed class MenuComprasCartao
         List<CartaoCredito> cartoes = _cartoes.ListarTodos();
         if (cartoes.Count == 0)
         {
-            Console.WriteLine("Cadastre um cartão primeiro pela opção 9.");
+            Console.WriteLine("Cadastre um cartão em Cartões > Cadastrar cartão.");
             return;
         }
         List<Categoria> categorias = _categorias.ListarTodas();
         if (categorias.Count == 0)
         {
-            Console.WriteLine("Cadastre uma categoria primeiro pela opção 7.");
+            Console.WriteLine("Cadastre uma categoria em Categorias > Cadastrar categoria.");
             return;
         }
 
@@ -51,7 +55,10 @@ public sealed class MenuComprasCartao
             importancia, planejamento, urgencia, justificativa, quantidade);
         Console.WriteLine("Compra registrada! O valor total comprometeu o limite do cartão.");
         MostrarCompra(compra);
-        Console.WriteLine($"Limite disponível: {cartao.LimiteDisponivel:C2}");
+        // No SQL, o serviço carrega outro objeto. Consulta novamente para mostrar o limite salvo.
+        CartaoCredito atualizado = _cartoes.BuscarPorId(cartao.Id)
+            ?? throw new InvalidOperationException("Não foi possível consultar o cartão atualizado.");
+        Console.WriteLine($"Limite disponível: {atualizado.LimiteDisponivel:C2}");
     }
 
     public void ListarCompras()

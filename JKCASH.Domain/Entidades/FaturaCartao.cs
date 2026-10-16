@@ -7,11 +7,18 @@ namespace JKCASH.Domain.Entidades;
 // Cada alteração produz uma nova versão. A versão anterior continua intacta em caso de falha.
 public sealed class FaturaCartao
 {
-    public Guid Id { get; }
-    public Guid CartaoId { get; }
-    public CicloFatura Ciclo { get; }
-    public IReadOnlyList<ParcelaCartao> Parcelas { get; }
-    public IReadOnlyList<PagamentoFatura> Pagamentos { get; }
+    private FaturaCartao() { }
+    private readonly List<ParcelaCartao> _parcelas = new();
+    private readonly List<PagamentoFatura> _pagamentos = new();
+    public Guid Id { get; private set; }
+    public Guid CartaoId { get; private set; }
+    public CicloFatura Ciclo { get; private set; } = null!;
+
+    public IReadOnlyList<ParcelaCartao> Parcelas =>
+        _parcelas.AsReadOnly();
+
+    public IReadOnlyList<PagamentoFatura> Pagamentos =>
+        _pagamentos.AsReadOnly();
     public decimal Total => Parcelas.Sum(parcela => parcela.Valor);
     public decimal TotalPago => Pagamentos.Sum(pagamento => pagamento.Valor);
     public decimal SaldoPendente => Total - TotalPago;
@@ -25,8 +32,8 @@ public sealed class FaturaCartao
         Id = id;
         CartaoId = cartaoId;
         Ciclo = ciclo;
-        Parcelas = parcelas.ToList().AsReadOnly();
-        Pagamentos = pagamentos.ToList().AsReadOnly();
+        _parcelas = parcelas.ToList();
+        _pagamentos = pagamentos.ToList();
     }
 
     public static FaturaCartao Criar(ParcelaCartao parcela) =>

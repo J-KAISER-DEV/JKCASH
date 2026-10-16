@@ -14,6 +14,13 @@ namespace JKCASH.Menus
             _repositorio = repositorio;
         }
 
+        public void Executar()
+        {
+            NavegacaoConsole.Executar("Contas", "Voltar",
+                ("Cadastrar conta", CadastrarConta),
+                ("Listar contas", ListarContas));
+        }
+
         public void CadastrarConta()
         {
             string nome = LeituraConsole.LerTexto("Nome da conta: ");

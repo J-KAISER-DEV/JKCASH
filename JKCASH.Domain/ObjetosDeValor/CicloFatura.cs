@@ -4,10 +4,11 @@ namespace JKCASH.Domain.ObjetosDeValor;
 
 public sealed record CicloFatura
 {
-    public DateTime Fechamento { get; }
-    public DateTime Vencimento { get; }
+    private CicloFatura() { }
+    public DateTime Fechamento { get; private set; }
+    public DateTime Vencimento { get; private set; }
     // Quando o cartão inclui compras no dia de fechamento, encerra ao fim desse dia.
-    public DateTime Encerramento { get; }
+    public DateTime Encerramento { get; private set; }
 
     private CicloFatura(CartaoCredito cartao, DateTime mes)
     {

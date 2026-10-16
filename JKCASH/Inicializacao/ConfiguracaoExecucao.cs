@@ -42,5 +42,29 @@ namespace JKCASH.Inicializacao
 
             return new TransacaoRepositorioSql();
         }
+
+        public static ICartaoCreditoRepositorio CriarRepositorioCartoes(bool usarMemoria)
+        {
+            if (usarMemoria)
+                return new CartaoCreditoRepositorioEmMemoria();
+
+            return new CartaoCreditoRepositorioSql();
+        }
+
+        public static (ICompraCartaoRepositorio Compras, IFaturaCartaoRepositorio Faturas)
+            CriarRepositorioMovimentacoesCartao(bool usarMemoria, ITransacaoRepositorio transacoes)
+        {
+            ArgumentNullException.ThrowIfNull(transacoes);
+
+            // As duas interfaces usam a mesma instância para compartilhar o armazenamento.
+            if (usarMemoria)
+            {
+                CompraCartaoRepositorio repositorio = new(transacoes);
+                return (repositorio, repositorio);
+            }
+
+            CompraCartaoRepositorioSql repositorioSql = new();
+            return (repositorioSql, repositorioSql);
+        }
     }
 }

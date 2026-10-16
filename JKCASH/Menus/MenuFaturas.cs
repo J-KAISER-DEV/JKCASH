@@ -1,4 +1,4 @@
-using JKCASH.Application.Interfaces;
+﻿using JKCASH.Application.Interfaces;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 
@@ -11,18 +11,32 @@ public sealed class MenuFaturas
     private readonly ICompraCartaoRepositorio _compras;
     private readonly IContaRepositorio _contas;
     private readonly ICategoriaRepositorio _categorias;
-    private readonly PagamentoFaturaServico? _pagamentos;
+    private readonly PagamentoFaturaServico _pagamentos;
 
     public MenuFaturas(ICartaoCreditoRepositorio cartoes, IFaturaCartaoRepositorio faturas,
         ICompraCartaoRepositorio compras, IContaRepositorio contas, ICategoriaRepositorio categorias,
-        PagamentoFaturaServico? pagamentos)
+        PagamentoFaturaServico pagamentos)
     {
+        ArgumentNullException.ThrowIfNull(cartoes);
+        ArgumentNullException.ThrowIfNull(faturas);
+        ArgumentNullException.ThrowIfNull(compras);
+        ArgumentNullException.ThrowIfNull(contas);
+        ArgumentNullException.ThrowIfNull(categorias);
+        ArgumentNullException.ThrowIfNull(pagamentos);
         _cartoes = cartoes;
         _faturas = faturas;
         _compras = compras;
         _contas = contas;
         _categorias = categorias;
         _pagamentos = pagamentos;
+    }
+
+    public void Executar()
+    {
+        NavegacaoConsole.Executar("Faturas", "Voltar",
+            ("Listar faturas de um cartão", ListarFaturas),
+            ("Consultar parcelas e pagamentos", ConsultarFatura),
+            ("Registrar pagamento total ou parcial", PagarFatura));
     }
 
     public void ListarFaturas()
@@ -55,11 +69,6 @@ public sealed class MenuFaturas
 
     public void PagarFatura()
     {
-        if (_pagamentos is null)
-        {
-            Console.WriteLine("Pagamento de fatura disponível no perfil JKCASH (Memoria). A integração SQL será implementada posteriormente.");
-            return;
-        }
         FaturaCartao? fatura = SelecionarFatura();
         if (fatura is null) return;
         if (fatura.SaldoPendente == 0m)
@@ -82,7 +91,9 @@ public sealed class MenuFaturas
         decimal valor = LeituraConsole.LerDecimal($"Valor pago (pendente: {fatura.SaldoPendente:C2}): ");
         PagamentoFatura pagamento = _pagamentos.Registrar(fatura.Id, conta.Id, valor, categoria.Id);
         Console.WriteLine($"Pagamento confirmado! Id: {pagamento.Id}");
-        Console.WriteLine($"Saldo da conta: {conta.Saldo.SaldoAtual:C2}");
+        // Recarrega o saldo, pois no modo SQL o serviço usa outra instância da conta.
+        Conta atualizada = _contas.ListarTodas().Single(item => item.Id == conta.Id);
+        Console.WriteLine($"Saldo da conta: {atualizada.Saldo.SaldoAtual:C2}");
         Console.WriteLine($"Limite disponível: {_cartoes.BuscarPorId(fatura.CartaoId)!.LimiteDisponivel:C2}");
         MostrarResumo(_faturas.BuscarPorId(fatura.Id)!);
     }
@@ -97,7 +108,7 @@ public sealed class MenuFaturas
         }
         CartaoCredito cartao = MenuCartao.SelecionarCartao(cartoes);
         List<FaturaCartao> faturas = _faturas.ListarPorCartao(cartao.Id);
-        if (faturas.Count == 0) Console.WriteLine("Nenhuma fatura gerada. Registre uma compra pela opção 11.");
+        if (faturas.Count == 0) Console.WriteLine("Nenhuma fatura gerada. Use Cartões > Registrar compra à vista ou parcelada.");
         return faturas;
     }
 

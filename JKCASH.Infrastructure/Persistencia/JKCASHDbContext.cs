@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using JKCASH.Domain.Entidades;
 using Microsoft.EntityFrameworkCore;
+using JKCASH.Infrastructure.Persistencia.Mapeamentos;
 namespace JKCASH.Infrastructure.Persistencia
 {
     public class JKCASHDbContext : DbContext
@@ -14,6 +15,19 @@ namespace JKCASH.Infrastructure.Persistencia
         public DbSet<Categoria> Categorias => Set<Categoria>();
         public DbSet<Conta> Contas => Set<Conta>();
         public DbSet<Transacao> Transacoes => Set<Transacao>();
+
+        public DbSet<CartaoCredito> CartoesCredito => Set<CartaoCredito>();
+        public DbSet<CompraCartao> ComprasCartao =>
+    Set<CompraCartao>();
+
+        public DbSet<FaturaCartao> FaturasCartao =>
+            Set<FaturaCartao>();
+
+        public DbSet<ParcelaCartao> ParcelasCartao =>
+            Set<ParcelaCartao>();
+
+        public DbSet<PagamentoFatura> PagamentosFatura =>
+            Set<PagamentoFatura>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -70,6 +84,43 @@ namespace JKCASH.Infrastructure.Persistencia
                 .HasForeignKey(t => t.ContaId).OnDelete(DeleteBehavior.Restrict);
             transacao.HasOne<Categoria>().WithMany()
                 .HasForeignKey(t => t.CategoriaId).OnDelete(DeleteBehavior.Restrict);
+
+
+            var cartao = modelBuilder.Entity<CartaoCredito>();
+
+            cartao.ToTable("CartoesCredito", "dbo");
+
+            cartao.HasKey(c => c.Id);
+
+            cartao.Property(c => c.Id).ValueGeneratedNever();
+
+            cartao.Property(c => c.Nome)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            cartao.Property(c => c.Limite)
+                .HasPrecision(18, 2);
+            
+            cartao.Property(c => c.ValorUtilizado)
+                .HasPrecision(18, 2);
+
+            cartao.Ignore(c => c.LimiteDisponivel);
+
+            cartao.HasOne<Conta>()
+                .WithMany()
+                .HasForeignKey(c => c.ContaId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.ApplyConfiguration(
+    new CompraCartaoMapeamento());
+
+            modelBuilder.ApplyConfiguration(
+                new FaturaCartaoMapeamento());
+
+            modelBuilder.ApplyConfiguration(
+                new ParcelaCartaoMapeamento());
+
+            modelBuilder.ApplyConfiguration(
+                new PagamentoFaturaMapeamento());
         }
     }
 }

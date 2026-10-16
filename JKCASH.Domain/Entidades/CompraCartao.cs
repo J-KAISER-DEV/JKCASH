@@ -19,8 +19,9 @@ namespace JKCASH.Domain.Entidades
         public UrgenciaTransacao Urgencia { get; private set; }
         public string Justificativa { get; private set; } = string.Empty;
         public int QuantidadeParcelas { get; private set; }
-        public IReadOnlyList<ParcelaCartao> Parcelas { get; private set; } = Array.Empty<ParcelaCartao>();
-
+        public IReadOnlyList<ParcelaCartao> Parcelas =>
+            _parcelas.AsReadOnly();
+        private readonly List<ParcelaCartao> _parcelas = new();
         private CompraCartao() { }
         
         public CompraCartao(
@@ -72,7 +73,7 @@ namespace JKCASH.Domain.Entidades
                         .AddMonths(numero - 1));
                 parcelas.Add(new ParcelaCartao(Id, CartaoId, numero, quantidadeParcelas, valorParcela, ciclo));
             }
-            Parcelas = parcelas.AsReadOnly();
+            _parcelas = parcelas;
         }
 
 
