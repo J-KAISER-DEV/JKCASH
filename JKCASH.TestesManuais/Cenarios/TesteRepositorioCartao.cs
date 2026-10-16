@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Repositorios;
 
@@ -12,7 +12,7 @@ namespace JKCASH.TestesManuais.Cenarios
 
             // PREPARAR
             ICartaoCreditoRepositorio cartoes = new CartaoCreditoRepositorioEmMemoria();
-            CartaoCredito cartao = new("Cartão faculdade", 1000m, 10, 20);
+            CartaoCredito cartao = new(Guid.NewGuid(), "Cartão faculdade", 1000m, 10, 20);
 
             // EXECUTAR
             cartoes.Adicionar(cartao);

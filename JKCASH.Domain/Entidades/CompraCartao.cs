@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using JKCASH.Domain.Validacoes;
+using JKCASH.Domain.ObjetosDeValor;
 namespace JKCASH.Domain.Entidades
 {
     public sealed class CompraCartao
@@ -17,11 +18,13 @@ namespace JKCASH.Domain.Entidades
         public PlanejamentoTransacao Planejamento { get; private set; }
         public UrgenciaTransacao Urgencia { get; private set; }
         public string Justificativa { get; private set; } = string.Empty;
+        public int QuantidadeParcelas { get; private set; }
+        public IReadOnlyList<ParcelaCartao> Parcelas { get; private set; } = Array.Empty<ParcelaCartao>();
 
         private CompraCartao() { }
         
         public CompraCartao(
-            Guid cartaoId,
+            CartaoCredito cartao,
             decimal valor,
             string descricao,
             DateTime data,
@@ -29,9 +32,10 @@ namespace JKCASH.Domain.Entidades
             ImportanciaTransacao importancia,
             PlanejamentoTransacao planejamento,
             UrgenciaTransacao urgencia,
-            string justificativa)
+            string justificativa,
+            int quantidadeParcelas = 1)
         {
-            Validacao.GuidNaoVazio(cartaoId, nameof(cartaoId));
+            ArgumentNullException.ThrowIfNull(cartao);
             Validacao.ValorMonetarioPositivo(valor, nameof(valor));
             Validacao.TextoObrigatorio(descricao, nameof(descricao),200);
             Validacao.GuidNaoVazio(categoriaId, nameof(categoriaId));
@@ -39,16 +43,36 @@ namespace JKCASH.Domain.Entidades
             Validacao.EnumValido(planejamento, nameof(planejamento));
             Validacao.EnumValido(urgencia, nameof(urgencia));
             Validacao.TextoObrigatorio(justificativa, nameof(justificativa),500);
+            // Até 120 parcelas, sempre com valor de pelo menos um centavo.
+            Validacao.InteiroNoIntervalo(quantidadeParcelas, 1, 120, nameof(quantidadeParcelas));
+            if (valor < quantidadeParcelas * 0.01m)
+                throw new ArgumentException("Cada parcela deve ter pelo menos um centavo.", nameof(quantidadeParcelas));
             Id = Guid.NewGuid();
-            CartaoId = cartaoId;
+            CartaoId = cartao.Id;
             Valor = valor;
             Descricao = descricao;
-            Data = data;
+            Data = data.Date;
             CategoriaId = categoriaId;
             Importancia = importancia;
             Planejamento = planejamento;
             Urgencia = urgencia;
             Justificativa = justificativa;
+            QuantidadeParcelas = quantidadeParcelas;
+
+            CicloFatura primeiroCiclo = CicloFatura.DaCompra(cartao, Data);
+            List<ParcelaCartao> parcelas = new();
+            decimal valorBase = decimal.Round(valor / quantidadeParcelas, 2, MidpointRounding.ToZero);
+            for (int numero = 1; numero <= quantidadeParcelas; numero++)
+            {
+                // O resíduo vai para a última parcela: a soma sempre coincide com a compra.
+                decimal valorParcela = numero == quantidadeParcelas
+                    ? valor - valorBase * (quantidadeParcelas - 1) : valorBase;
+                CicloFatura ciclo = CicloFatura.DoMes(cartao,
+                    new DateTime(primeiroCiclo.Fechamento.Year, primeiroCiclo.Fechamento.Month, 1)
+                        .AddMonths(numero - 1));
+                parcelas.Add(new ParcelaCartao(Id, CartaoId, numero, quantidadeParcelas, valorParcela, ciclo));
+            }
+            Parcelas = parcelas.AsReadOnly();
         }
 
 

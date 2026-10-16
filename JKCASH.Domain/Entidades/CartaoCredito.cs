@@ -7,21 +7,26 @@ namespace JKCASH.Domain.Entidades
     public sealed class CartaoCredito
     {
         public Guid Id { get; private set; }
+        public Guid ContaId { get; private set; }
         public string Nome { get; private set; }
         public decimal Limite { get; private set; }
         public decimal ValorUtilizado { get; private set; }
         
         public int DiaFechamento { get; private set; }
         public int DiaVencimento { get; private set; }
+        public bool CompraNoFechamentoNaProximaFatura { get; private set; }
 
         public decimal LimiteDisponivel => Limite - ValorUtilizado;
 
         public CartaoCredito(
+            Guid contaId,
             string nome,
             decimal limite,
             int diaFechamento,
-            int diaVencimento)
+            int diaVencimento,
+            bool compraNoFechamentoNaProximaFatura = true)
         {
+            Validacao.GuidNaoVazio(contaId, nameof(contaId));
             Validacao.TextoObrigatorio(nome, nameof(nome));
             Validacao.ValorMonetarioPositivo(limite, nameof(limite));
             Validacao.InteiroNoIntervalo(
@@ -31,11 +36,13 @@ namespace JKCASH.Domain.Entidades
             
          
             Id = Guid.NewGuid();
+            ContaId = contaId;
             Nome = nome.Trim();
             Limite = limite;
             ValorUtilizado = 0m;
             DiaFechamento = diaFechamento;
             DiaVencimento = diaVencimento;
+            CompraNoFechamentoNaProximaFatura = compraNoFechamentoNaProximaFatura;
 
         }
         public void RegistrarCompra(decimal valor)
@@ -59,6 +66,15 @@ namespace JKCASH.Domain.Entidades
                     ("O estorno nao pode ultrapassar o valor utilizado",
                     nameof(valor));
             }
+            ValorUtilizado -= valor;
+        }
+
+        public void RegistrarPagamento(decimal valor)
+        {
+            Validacao.ValorMonetarioPositivo(valor, nameof(valor));
+            if (valor > ValorUtilizado)
+                throw new ArgumentException("O pagamento ultrapassa o valor utilizado do cartão.", nameof(valor));
+
             ValorUtilizado -= valor;
         }
     }

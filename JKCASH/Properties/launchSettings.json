@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "JKCASH (Memoria)": {
+      "commandName": "Project",
+      "commandLineArgs": "--memoria"
+    },
+    "JKCASH (SQL)": {
+      "commandName": "Project",
+      "commandLineArgs": ""
+    }
+  }
+}

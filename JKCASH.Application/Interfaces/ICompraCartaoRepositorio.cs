@@ -8,5 +8,7 @@ namespace JKCASH.Application.Interfaces
     public interface ICompraCartaoRepositorio
     {
         void Adicionar(CompraCartao compra, CartaoCredito cartao);
+        CompraCartao? BuscarPorId(Guid id);
+        List<CompraCartao> ListarPorCartao(Guid cartaoId);
     }
 }

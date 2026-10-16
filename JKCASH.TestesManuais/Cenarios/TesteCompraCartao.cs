@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using JKCASH.Application.Servicos;
@@ -18,7 +18,7 @@ namespace JKCASH.TestesManuais.Cenarios
             CompraCartaoRepositorio compras = new();
 
             CartaoCredito cartao = new(
-                "Cartão faculdade", 1000m, 10, 20);
+                Guid.NewGuid(), "Cartão faculdade", 1000m, 10, 20);
 
             Categoria categoria = new("Estudos");
 
@@ -66,12 +66,12 @@ namespace JKCASH.TestesManuais.Cenarios
         private static void CriacaoDaCompra()
         {
             // PREPARAR
-            CartaoCredito cartao = new("Cartão de teste", 1000m, 10, 20);
+            CartaoCredito cartao = new(Guid.NewGuid(), "Cartão de teste", 1000m, 10, 20);
             Categoria categoria = new("Estudos");
 
             // EXECUTAR: criar o objeto não consome limite.
             CompraCartao compra = new(
-                cartao.Id, 150m, "Compra de livros", DateTime.Today,
+                cartao, 150m, "Compra de livros", DateTime.Today,
                 categoria.Id, ImportanciaTransacao.Alta,
                 PlanejamentoTransacao.Planejada, UrgenciaTransacao.SemUrgencia,
                 "Livros para a faculdade");
@@ -92,7 +92,7 @@ namespace JKCASH.TestesManuais.Cenarios
             CompraCartaoRepositorioComFalha compras = new();
 
             CartaoCredito cartao = new(
-                "Cartão de teste", 1000m, 10, 20);
+                Guid.NewGuid(), "Cartão de teste", 1000m, 10, 20);
 
             Categoria categoria = new("Estudos");
 

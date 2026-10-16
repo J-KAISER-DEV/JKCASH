@@ -6,21 +6,35 @@ namespace JKCASH.Menus
     public class MenuPrincipal
     {
         private readonly MenuContas _contas;
+        private readonly MenuCartao _cartoes;
         private readonly MenuCategorias _categorias;
         private readonly MenuTransacoes _transacoes;
+        private readonly MenuComprasCartao _compras;
+        private readonly MenuFaturas _faturas;
 
         public MenuPrincipal(
             MenuContas contas,
             MenuCategorias categorias,
-            MenuTransacoes transacoes)
+            MenuTransacoes transacoes,
+            MenuCartao cartoes,
+            MenuComprasCartao compras,
+            MenuFaturas faturas)
         {
             ArgumentNullException.ThrowIfNull(contas);
             ArgumentNullException.ThrowIfNull(categorias);
             ArgumentNullException.ThrowIfNull(transacoes);
+            ArgumentNullException.ThrowIfNull(cartoes);
+            ArgumentNullException.ThrowIfNull(compras);
+            ArgumentNullException.ThrowIfNull(faturas);
+
+
 
             _contas = contas;
             _categorias = categorias;
             _transacoes = transacoes;
+            _cartoes = cartoes;
+            _compras = compras;
+            _faturas = faturas;
         }
 
         // Mantém o menu ativo e trata as falhas apresentadas ao usuário.
@@ -65,6 +79,31 @@ namespace JKCASH.Menus
                             break;
                         case "8":
                             _categorias.ListarCategorias();
+                            break;
+                        case "9":
+                            _cartoes.CadastrarCartao();
+                            break;
+
+                        case "10":
+                            _cartoes.ListarCartoes();
+                            break;
+                        case "11":
+                            _compras.RegistrarCompra();
+                            break;
+                        case "12":
+                            _compras.ListarCompras();
+                            break;
+                        case "13":
+                            _compras.BuscarCompra();
+                            break;
+                        case "14":
+                            _faturas.ListarFaturas();
+                            break;
+                        case "15":
+                            _faturas.ConsultarFatura();
+                            break;
+                        case "16":
+                            _faturas.PagarFatura();
                             break;
                         default:
                             Console.WriteLine("Opção inválida.");
@@ -112,6 +151,14 @@ namespace JKCASH.Menus
             Console.WriteLine("6 - Listar transações por conta");
             Console.WriteLine("7 - Cadastrar categoria");
             Console.WriteLine("8 - Listar categorias");
+            Console.WriteLine("9 - Cadastrar cartão de crédito");
+            Console.WriteLine("10 - Listar cartões de crédito");
+            Console.WriteLine("11 - Registrar compra no cartão (à vista ou parcelada)");
+            Console.WriteLine("12 - Listar compras de um cartão");
+            Console.WriteLine("13 - Buscar compra por Id");
+            Console.WriteLine("14 - Listar faturas de um cartão");
+            Console.WriteLine("15 - Consultar parcelas e pagamentos de uma fatura");
+            Console.WriteLine("16 - Registrar pagamento total ou parcial de fatura");
             Console.WriteLine("0 - Sair");
         }
     }

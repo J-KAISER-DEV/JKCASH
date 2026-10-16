@@ -71,5 +71,16 @@ namespace JKCASH.Menus
 
             return escolha;
         }
+
+        public static int LerInteiro(string mensagem)
+        {
+            string texto = LerTexto(mensagem);
+            if (!int.TryParse(texto,out int numero))
+            {
+                throw new ArgumentException("Digite um numero inteiro valido");
+            }
+
+            return numero;
+        }
     }
 }

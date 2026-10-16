@@ -12,10 +12,12 @@ namespace JKCASH.Application.Servicos
         private readonly ICategoriaRepositorio _categorias;
         private readonly ICartaoCreditoRepositorio _repositorio;
         private readonly ICompraCartaoRepositorio _compras;
+        private readonly TimeProvider _relogio;
 
         public CompraCartaoServico(ICartaoCreditoRepositorio repositorio,
             ICategoriaRepositorio categorias,
-            ICompraCartaoRepositorio compras)
+            ICompraCartaoRepositorio compras,
+            TimeProvider? relogio = null)
         {
             ArgumentNullException.ThrowIfNull(categorias);
             ArgumentNullException.ThrowIfNull(repositorio);
@@ -24,6 +26,7 @@ namespace JKCASH.Application.Servicos
             _repositorio = repositorio;
             _categorias = categorias;
             _compras = compras;
+            _relogio = relogio ?? TimeProvider.System;
         }
 
         public CompraCartao Registrar(
@@ -35,7 +38,8 @@ namespace JKCASH.Application.Servicos
             ImportanciaTransacao importancia,
             PlanejamentoTransacao planejamento,
             UrgenciaTransacao urgencia,
-            string justificativa)
+            string justificativa,
+            int quantidadeParcelas = 1)
         {
             CartaoCredito? cartao =
                 _repositorio.BuscarPorId(cartaoId);
@@ -55,7 +59,7 @@ namespace JKCASH.Application.Servicos
             }
 
             CompraCartao compra = new(
-                cartao.Id,
+                cartao,
                 valor,
                 descricao,
                 data,
@@ -63,7 +67,14 @@ namespace JKCASH.Application.Servicos
                 importancia,
                 planejamento,
                 urgencia,
-                justificativa);
+                justificativa,
+                quantidadeParcelas);
+
+            DateTime hoje = _relogio.GetLocalNow().Date;
+            if (compra.Data > hoje)
+                throw new ArgumentException("Não é possível registrar uma compra futura.", nameof(data));
+            if (compra.Parcelas[0].Ciclo.Encerramento <= hoje)
+                throw new ArgumentException("O ciclo dessa compra já fechou. Nesta versão, registre compras do ciclo aberto.", nameof(data));
 
             cartao.RegistrarCompra(compra.Valor);
             try

@@ -1,4 +1,4 @@
-﻿using JKCASH.Domain.Entidades;
+using JKCASH.Domain.Entidades;
 
 namespace JKCASH.TestesManuais.Cenarios
 {
@@ -15,7 +15,7 @@ namespace JKCASH.TestesManuais.Cenarios
         private static void CompraDentroDoLimite()
         {
             // PREPARAR
-            CartaoCredito cartao = new("Cartão de teste", 1000m, 10, 20);
+            CartaoCredito cartao = new(Guid.NewGuid(), "Cartão de teste", 1000m, 10, 20);
 
             // EXECUTAR
             cartao.RegistrarCompra(200m);
@@ -31,7 +31,7 @@ namespace JKCASH.TestesManuais.Cenarios
         private static void CompraAcimaDoLimite()
         {
             // PREPARAR: este cenário tem seu próprio cartão.
-            CartaoCredito cartao = new("Cartão de teste", 1000m, 10, 20);
+            CartaoCredito cartao = new(Guid.NewGuid(), "Cartão de teste", 1000m, 10, 20);
             cartao.RegistrarCompra(200m);
             bool compraRecusada = false;
 
