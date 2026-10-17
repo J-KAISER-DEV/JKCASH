@@ -7,6 +7,31 @@ namespace JKCASH.Infrastructure.Repositorios
 {
     public class TransacaoRepositorioSql : ITransacaoRepositorio
     {
+        public List<Transacao> ListarPorPeriodo(
+    List<Guid> contaIds,
+    DateTime dataInicial,
+    DateTime dataFinal)
+        {
+            ArgumentNullException.ThrowIfNull(contaIds);
+
+            if (dataInicial.Date > dataFinal.Date)
+            {
+                throw new ArgumentException(
+                    "A data inicial não pode ser posterior à data final.");
+            }
+
+            using JKCASHDbContext contexto = ConexaoSql.CriarContexto();
+
+            return contexto.Transacoes
+                .AsNoTracking()
+                .Where(transacao =>
+                    contaIds.Contains(transacao.ContaId) &&
+                    transacao.Data.Date >= dataInicial.Date &&
+                    transacao.Data.Date <= dataFinal.Date)
+                .OrderBy(transacao => transacao.Data)
+                .ThenBy(transacao => transacao.Id)
+                .ToList();
+        }
         public void Adicionar(Transacao transacao, Conta conta)
         {
             ArgumentNullException.ThrowIfNull(transacao);

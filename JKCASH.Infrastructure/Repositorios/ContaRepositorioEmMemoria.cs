@@ -8,7 +8,26 @@ namespace JKCASH.Infrastructure.Repositorios
 {
     public class ContaRepositorioEmMemoria : IContaRepositorio
     {
-        private readonly Dictionary<Guid, Conta> _contas = new();
+        private Dictionary<Guid, Conta> _contas = new();
+        private readonly TransacaoRepositoEmMemoria? _transacoes;
+
+        public ContaRepositorioEmMemoria(TransacaoRepositoEmMemoria? transacoes = null)
+        {
+            _transacoes = transacoes;
+        }
+
+        public void RemoverComTransacoes(Guid id)
+        {
+            if (!_contas.ContainsKey(id))
+                throw new InvalidOperationException("Conta não encontrada.");
+            if (_transacoes is null)
+                throw new InvalidOperationException("O repositório de transações não foi configurado para a exclusão conjunta.");
+
+            var restantes = new Dictionary<Guid, Conta>(_contas);
+            restantes.Remove(id);
+            _transacoes.RemoverPorConta(id);
+            _contas = restantes;
+        }
 
         public void Adicionar(Conta conta)
         {
@@ -37,6 +56,12 @@ namespace JKCASH.Infrastructure.Repositorios
         public List<Conta> ListarTodas()
         {
             return _contas.Values.ToList();
+        }
+
+        public void Remover(Guid id)
+        {
+            if (!_contas.Remove(id))
+                throw new InvalidOperationException("Conta não encontrada.");
         }
     }
 }

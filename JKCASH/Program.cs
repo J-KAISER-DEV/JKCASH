@@ -10,21 +10,26 @@ bool modoMemoria = ConfiguracaoExecucao.UsarMemoria(args);
 
 // 1. Repositórios: implementações usadas nesta execução da aplicação.
 ICartaoCreditoRepositorio cartoes = ConfiguracaoExecucao.CriarRepositorioCartoes(modoMemoria);
-IContaRepositorio contas = ConfiguracaoExecucao.CriarRepositorioContas(modoMemoria);
 ICategoriaRepositorio categorias = ConfiguracaoExecucao.CriarRepositorioCategorias(modoMemoria);
 ITransacaoRepositorio transacoes = ConfiguracaoExecucao.CriarRepositorioTransacoes(modoMemoria);
+IContaRepositorio contas = ConfiguracaoExecucao.CriarRepositorioContas(modoMemoria, transacoes);
 
 // 2. Serviço: coordena o registro da transação e a movimentação do saldo.
 TransacaoServico servico = new(transacoes, categorias);
 var (comprasCartao, faturas) =
     ConfiguracaoExecucao.CriarRepositorioMovimentacoesCartao(modoMemoria, transacoes);
+ContaServico servicoContas = new(contas, transacoes, cartoes, faturas);
 CompraCartaoServico servicoCompras = new(cartoes, categorias, comprasCartao);
 PagamentoFaturaServico servicoPagamentos = new(faturas, cartoes, contas, categorias);
+RelatorioTransacoesServico relatorios = new(transacoes);
+ITransferenciaRepositorio transferencias =
+    ConfiguracaoExecucao.CriarRepositorioTransferencias(modoMemoria, contas, transacoes);
+TransferenciaServico servicoTransferencias = new(contas, categorias, transferencias);
 
 // 3. Menus: recebem as dependências para coletar dados e mostrar resultados.
-MenuContas menuContas = new(contas);
+MenuContas menuContas = new(contas, servicoContas, servicoTransferencias, categorias);
 MenuCategorias menuCategorias = new(categorias);
-MenuTransacoes menuTransacoes = new(contas, categorias, transacoes, servico);
+MenuTransacoes menuTransacoes = new(contas, categorias, transacoes, servico, relatorios);
 MenuComprasCartao menuCompras = new(cartoes, categorias, comprasCartao, servicoCompras);
 MenuCartao menuCartao = new(cartoes, contas, menuCompras);
 MenuFaturas menuFaturas = new(cartoes, faturas, comprasCartao,

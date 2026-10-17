@@ -76,6 +76,8 @@ namespace JKCASH.Infrastructure.Persistencia
             transacao.ToTable("Transacoes", "dbo");
             transacao.HasKey(t => t.Id);
             transacao.Property(t => t.Id).ValueGeneratedNever();
+            transacao.HasIndex(t => t.TransferenciaId)
+                .HasFilter("[TransferenciaId] IS NOT NULL");
             transacao.Property(t => t.Valor).HasPrecision(18, 2);
             transacao.Property(t => t.Descricao).HasMaxLength(200).IsRequired();
             transacao.Property(t => t.Justificativa).HasMaxLength(500).IsRequired();

@@ -10,6 +10,7 @@ namespace JKCASH.Domain.Entidades
     {
         public Guid Id { get; private set; }
         public Guid ContaId { get; private set; }
+        public Guid? TransferenciaId { get; private set; }
         public TipoTransacao Tipo {  get; private set; }
         public decimal Valor { get; private set; }
         public string Descricao { get; private set; } = string.Empty;
@@ -21,6 +22,19 @@ namespace JKCASH.Domain.Entidades
         public string Justificativa { get; private set; } = string.Empty;
 
         private Transacao() { }
+
+        internal static Transacao CriarTransferencia(
+            Guid transferenciaId, Guid contaId, TipoTransacao tipo, decimal valor,
+            string descricao, DateTime data, Guid categoriaId,
+            ImportanciaTransacao importancia, PlanejamentoTransacao planejamento,
+            UrgenciaTransacao urgencia, string justificativa)
+        {
+            Validacao.GuidNaoVazio(transferenciaId, nameof(transferenciaId));
+            Transacao transacao = new(contaId, tipo, valor, descricao, data,
+                categoriaId, importancia, planejamento, urgencia, justificativa);
+            transacao.TransferenciaId = transferenciaId;
+            return transacao;
+        }
 
         public Transacao(
         Guid contaId,

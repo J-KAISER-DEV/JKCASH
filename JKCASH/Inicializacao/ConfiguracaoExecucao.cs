@@ -13,11 +13,13 @@ namespace JKCASH.Inicializacao
             return args.Contains("--memoria", StringComparer.OrdinalIgnoreCase);
         }
 
-        public static IContaRepositorio CriarRepositorioContas(bool usarMemoria)
+        public static IContaRepositorio CriarRepositorioContas(bool usarMemoria, ITransacaoRepositorio transacoes)
         {
             if (usarMemoria)
             {
-                return new ContaRepositorioEmMemoria();
+                if (transacoes is not TransacaoRepositoEmMemoria transacoesEmMemoria)
+                    throw new ArgumentException("Use o repositório de transações em memória neste modo.", nameof(transacoes));
+                return new ContaRepositorioEmMemoria(transacoesEmMemoria);
             }
 
             return new ContaRepositorioSql();
@@ -49,6 +51,19 @@ namespace JKCASH.Inicializacao
                 return new CartaoCreditoRepositorioEmMemoria();
 
             return new CartaoCreditoRepositorioSql();
+        }
+
+        public static ITransferenciaRepositorio CriarRepositorioTransferencias(
+            bool usarMemoria, IContaRepositorio contas, ITransacaoRepositorio transacoes)
+        {
+            if (usarMemoria)
+            {
+                if (transacoes is not TransacaoRepositoEmMemoria transacoesEmMemoria)
+                    throw new ArgumentException("Use o repositório de transações em memória neste modo.", nameof(transacoes));
+                return new TransferenciaRepositorioEmMemoria(contas, transacoesEmMemoria);
+            }
+
+            return new TransferenciaRepositorioSql();
         }
 
         public static (ICompraCartaoRepositorio Compras, IFaturaCartaoRepositorio Faturas)

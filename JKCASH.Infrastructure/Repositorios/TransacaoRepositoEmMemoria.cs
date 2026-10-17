@@ -7,7 +7,60 @@ namespace JKCASH.Infrastructure.Repositorios
 {
     public class TransacaoRepositoEmMemoria : ITransacaoRepositorio
     {
-        private readonly Dictionary<Guid, Transacao> _transacoes = new();
+        private Dictionary<Guid, Transacao> _transacoes = new();
+
+        internal void AdicionarTransferencia(Transferencia transferencia)
+        {
+            // Uma falha ao preparar qualquer registro preserva o dicionário original.
+            var transacoes = new Dictionary<Guid, Transacao>(_transacoes);
+            transacoes.Add(transferencia.Saida.Id, transferencia.Saida);
+            transacoes.Add(transferencia.Entrada.Id, transferencia.Entrada);
+            _transacoes = transacoes;
+        }
+
+        public List<Transacao> ListarPorPeriodo(
+            List<Guid> contaIds,
+            DateTime dataInicial,
+            DateTime dataFinal)
+        {
+            ArgumentNullException.ThrowIfNull(contaIds);
+
+            if (dataInicial.Date > dataFinal.Date)
+            {
+                throw new ArgumentException(
+                    "A data inicial não pode ser posterior à data final.");
+            }
+
+            List<Transacao> resultado = new();
+
+            foreach (Transacao transacao in _transacoes.Values)
+            {
+                bool contaSelecionada = contaIds.Contains(transacao.ContaId);
+
+                bool dentroDoPeriodo =
+                    transacao.Data.Date >= dataInicial.Date &&
+                    transacao.Data.Date <= dataFinal.Date;
+
+                if (contaSelecionada && dentroDoPeriodo)
+                {
+                    resultado.Add(transacao);
+                }
+            }
+
+            return resultado
+                .OrderBy(transacao => transacao.Data)
+                .ThenBy(transacao => transacao.Id)
+                .ToList();
+        }
+        internal void RemoverPorConta(Guid contaId)
+        {
+            if (_transacoes.Values.Any(t => t.ContaId == contaId && t.TransferenciaId != null))
+                throw new InvalidOperationException("A conta participa de transferências. A exclusão apagaria parte do histórico de outra conta.");
+            // Prepara a cópia antes de substituir os dados da execução.
+            var restantes = _transacoes.Where(item => item.Value.ContaId != contaId)
+                .ToDictionary(item => item.Key, item => item.Value);
+            _transacoes = restantes;
+        }
 
         public void Adicionar(Transacao transacao, Conta conta)
         {

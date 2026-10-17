@@ -274,6 +274,13 @@ public static class TesteFaturasParcelasPagamentos
 
     private sealed class TransacoesComFalha : ITransacaoRepositorio
     {
+        public List<Transacao> ListarPorPeriodo(
+            List<Guid> contaIds,
+            DateTime dataInicial,
+            DateTime dataFinal)
+        {
+            return new List<Transacao>();
+        }
         public void Adicionar(Transacao transacao, Conta conta) => throw new InvalidOperationException("Falha simulada ao salvar saída.");
         public Transacao? BuscarPorId(Guid id) => null;
         public List<Transacao> ListarTodas() => new();

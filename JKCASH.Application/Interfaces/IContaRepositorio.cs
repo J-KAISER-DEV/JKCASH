@@ -9,6 +9,11 @@ namespace JKCASH.Application.Interfaces
     {
         void Adicionar(Conta conta);
 
+        void Remover(Guid id);
+
+        // A conta e suas transações são removidas juntas ou nada é removido.
+        void RemoverComTransacoes(Guid id);
+
         List<Conta> ListarTodas();
 
     }

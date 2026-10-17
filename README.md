@@ -34,19 +34,35 @@ dotnet run --project JKCASH/JKCASH.csproj --no-launch-profile
 
 Sem o argumento `--memoria`, a aplicação mantém o comportamento de usar SQL. Os perfis do Visual Studio também podem ser usados no terminal com `--launch-profile "JKCASH (Memoria)"` ou `--launch-profile "JKCASH (SQL)"`.
 
+Para atualizar um banco existente com o suporte a transferências, execute `BancoDeDados/Scripts/001-transferencias.sql` no SQL Server. O script pode ser executado novamente: adiciona somente a coluna opcional `TransferenciaId` e seu índice, preservando os registros existentes. Essa atualização já foi aplicada no banco local usado no desenvolvimento.
+
 ## Navegação por submenus
 
 O menu principal mostra somente os grupos. Dentro de cada submenu, **0 - Voltar** retorna ao principal; no principal, **0 - Sair** encerra o programa.
 
 | Menu principal | Operações |
 |---|---|
-| 1 - Contas | Cadastrar e listar contas |
-| 2 - Transações | Registrar, listar todas, buscar por Id e listar por conta |
+| 1 - Contas | Cadastrar, listar, excluir e transferir entre contas |
+| 2 - Transações | Registrar, consultar, extrato e resumos por categoria, planejamento, importância e urgência |
 | 3 - Cartões | Cadastrar e listar cartões, registrar e consultar compras |
 | 4 - Faturas | Listar, consultar parcelas e pagamentos, registrar pagamento |
 | 5 - Categorias | Cadastrar e listar categorias |
 
 Cada classe de menu organiza suas operações. `NavegacaoConsole` reutiliza a exibição das opções, o retorno e o tratamento de erros. `Program.cs` cria os repositórios e serviços conforme o modo escolhido. As interfaces de compras e faturas recebem a mesma instância de repositório.
+
+Em **Contas > Excluir conta**, selecione uma conta: a tela informa quantas transações serão apagadas junto com ela. Digite **EXCLUIR** para confirmar a exclusão definitiva da conta e de suas transações; qualquer outra resposta cancela. As categorias são preservadas. Contas com cartões ou pagamentos de fatura vinculados continuam bloqueadas, inclusive quando pagam a fatura de um cartão de outra conta. No SQL, um único `SaveChanges` remove as transações e a conta em uma transação do banco: se uma exclusão falhar, tudo é desfeito. O serviço mantém a opção de excluir sem histórico bloqueada por padrão; a remoção conjunta exige a opção explícita `excluirTransacoes: true`.
+
+Para verificar a exclusão em memória e no SQL com dados temporários e rollback: `dotnet run --project JKCASH.TestesManuais -- --exclusao-contas`.
+
+## Transferências entre contas
+
+Em **Contas > 4 - Transferir entre contas**, escolha a origem, informe o valor e selecione o destino. O destino deve ser outra conta ativa. O valor deve ser positivo, ter no máximo duas casas decimais e caber no saldo e cheque especial da origem. O menu verifica o valor antes de pedir os demais dados. Selecione a categoria, importância, planejamento, urgência, descrição e justificativa. A data e o horário são os do registro da transferência.
+
+`TransferenciaServico` coordena o débito e o crédito. A entidade `Transferencia` cria dois registros `Transacao` ligados pelo mesmo `TransferenciaId`: saída na origem e entrada no destino. O repositório SQL grava os dois saldos e os dois registros na mesma transação; uma falha desfaz toda a operação. Leituras e atualizações da transferência usam isolamento serializável, e saldos desatualizados são recusados. Em memória, os registros são preparados em uma cópia e o serviço restaura os saldos se o armazenamento falhar.
+
+O extrato identifica as transferências e apresenta os totais enviados e recebidos separadamente das entradas e saídas comuns. Os resumos de gastos por categoria, planejamento, importância e urgência não incluem transferências internas, mesmo quando apenas uma das contas é selecionada. Transferências não modificam os saldos iniciais e não representam compras no cartão nem pagamentos de fatura.
+
+Contas que participam de transferências não podem ser excluídas nesta versão: remover apenas um lado apagaria parte do histórico de outra conta. Estorno e exclusão conjunta de transferências ficam para uma funcionalidade própria.
 
 ## Cartões de crédito
 
