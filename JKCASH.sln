@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JKCASH.Infrastructure", "JK
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JKCASH.TestesManuais", "JKCASH.TestesManuais\JKCASH.TestesManuais.csproj", "{D979E55A-FDBE-41F7-B034-D90C841B45D8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JKCASH.WinForms", "JKCASH.WinForms\JKCASH.WinForms.csproj", "{F599E213-1FD7-4270-A99A-44FDC3D72142}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -83,6 +85,18 @@ Global
 		{D979E55A-FDBE-41F7-B034-D90C841B45D8}.Release|x64.Build.0 = Release|Any CPU
 		{D979E55A-FDBE-41F7-B034-D90C841B45D8}.Release|x86.ActiveCfg = Release|Any CPU
 		{D979E55A-FDBE-41F7-B034-D90C841B45D8}.Release|x86.Build.0 = Release|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Debug|x64.Build.0 = Debug|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Debug|x86.Build.0 = Debug|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Release|x64.ActiveCfg = Release|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Release|x64.Build.0 = Release|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Release|x86.ActiveCfg = Release|Any CPU
+		{F599E213-1FD7-4270-A99A-44FDC3D72142}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

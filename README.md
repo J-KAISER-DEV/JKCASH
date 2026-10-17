@@ -2,7 +2,7 @@
 
 ## Abrir no Visual Studio
 
-Depois de clonar o repositório, abra `JKCASH.sln`, na raiz, usando **Arquivo > Abrir > Projeto/Solução**. Essa solução reúne os cinco projetos do JKCASH. Abrir apenas a pasta do repositório deixa o Visual Studio no modo de pastas.
+Depois de clonar o repositório, abra `JKCASH.sln`, na raiz, usando **Arquivo > Abrir > Projeto/Solução**. Essa solução reúne os projetos do JKCASH. Abrir apenas a pasta do repositório deixa o Visual Studio no modo de pastas.
 
 Use o Visual Studio com suporte ao .NET 10 e o SDK do .NET 10 instalado. Para iniciar a aplicação, defina o projeto `JKCASH` como projeto de inicialização.
 
@@ -13,6 +13,16 @@ dotnet build JKCASH.sln
 ```
 
 O projeto de estudos `C#Aprendizado` tem uma solução própria em `C#Aprendizado/C#Aprendizado.slnx`.
+
+## Interface Windows Forms — prévia visual
+
+Defina **JKCASH.WinForms** como projeto de inicialização e execute com F5. O dashboard segue a referência visual aprovada: menu azul escuro, fundo claro, botões verdes, cartões de indicadores, barras por categoria e tabela de movimentações. Menu e atalhos permitem navegar entre as seis seções; fora do dashboard, as telas estão sinalizadas como em construção.
+
+Esta etapa usa valores ilustrativos, identificados no rodapé, e não consulta nem altera o banco. Os filtros contêm somente o cenário demonstrativo. As funções financeiras continuam disponíveis no projeto Console enquanto conectamos as telas aos serviços existentes.
+
+`FrmPrincipal.Designer.cs` mantém a estrutura dos painéis da janela. `FrmPrincipal.Visual.cs` configura o menu e a navegação em execução; abra esse arquivo como código. `Telas/UcDashboard.cs` organiza o conteúdo com `TableLayoutPanel`, `Panel`, `Label`, `ComboBox`, `Button` e `DataGridView`. `Visual/EstiloVisual.cs` centraliza a paleta, botões, ícones e desenho das bordas, usando somente Windows Forms e System.Drawing. Para conferir o acabamento completo, execute o projeto; o designer da janela mantém apenas a estrutura básica.
+
+A referência e uma captura renderizada da interface ficam em `docs/design/`.
 
 ## Executar sem banco de dados
 

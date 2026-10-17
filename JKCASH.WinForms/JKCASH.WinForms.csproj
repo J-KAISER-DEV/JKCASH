@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JKCASH.Application\JKCASH.Application.csproj" />
+    <ProjectReference Include="..\JKCASH.Domain\JKCASH.Domain.csproj" />
+    <ProjectReference Include="..\JKCASH.Infrastructure\JKCASH.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="FrmPrincipal.Visual.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <EmbeddedResource Remove="FrmPrincipal.Visual.resx" />
+    <None Include="FrmPrincipal.Visual.resx" />
+  </ItemGroup>
+
+</Project>
