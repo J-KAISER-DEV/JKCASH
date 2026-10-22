@@ -8,7 +8,8 @@ namespace JKCASH.Infrastructure.Repositorios
 {
     public class CategoriaRepositorioEmMemoria : ICategoriaRepositorio
     {
-        private readonly Dictionary<Guid, Categoria> _categorias = new();
+        private Dictionary<Guid, Categoria> _categorias = new();
+        internal void Substituir(Dictionary<Guid, Categoria> categorias) => _categorias = categorias;
 
         public bool Existe(Guid id)
         {

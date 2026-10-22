@@ -8,11 +8,13 @@ using System.Windows.Forms;
 using JKCASH.Domain.Enums;
 using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
+using JKCASH.Application.Servicos;
 namespace JKCASH.WinForms.Telas
 {
     public partial class UcContas : UserControl
     {
         private readonly IContaRepositorio? _repositorio;
+        private UcTransferencias? _telaTransferencias;
         public UcContas()
         {
             InitializeComponent();
@@ -24,10 +26,30 @@ namespace JKCASH.WinForms.Telas
             ArgumentNullException.ThrowIfNull(repositorio);
             _repositorio = repositorio;
             Load += (_, _) => CarregarContas();
-            btnSalvarConta.Click += (_, _) => SalvarConta();
+            btnSalvarConta.Click += async (_, _) => await SalvarContaAsync();
+            tabContas.SelectedIndexChanged += (_, _) =>
+            {
+                if (tabContas.SelectedTab == tabCadastroContas) CarregarContas();
+            };
         }
 
-        private void SalvarConta()
+        public UcContas(IContaRepositorio repositorio, ICategoriaRepositorio categorias,
+            TransferenciaServico transferencias) : this(repositorio)
+        {
+            ArgumentNullException.ThrowIfNull(categorias);
+            ArgumentNullException.ThrowIfNull(transferencias);
+            _telaTransferencias = new UcTransferencias(repositorio, categorias, transferencias)
+            { Dock = DockStyle.Fill };
+            _telaTransferencias.TransferenciaRealizada += (_, _) => CarregarContas();
+            tabTransferirContas.Controls.Add(_telaTransferencias);
+            tabContas.SelectedIndexChanged += async (_, _) =>
+            {
+                if (tabContas.SelectedTab == tabTransferirContas)
+                    await _telaTransferencias.AtualizarDadosAsync();
+            };
+        }
+
+        private async Task SalvarContaAsync()
         {
             if (_repositorio is null)
                 return;
@@ -63,6 +85,7 @@ namespace JKCASH.WinForms.Telas
                     MessageBoxIcon.Information);
 
                 CarregarContas();
+                if (_telaTransferencias is not null) await _telaTransferencias.AtualizarDadosAsync();
                 txtNomeConta.Focus();
             }
             catch (ArgumentException erro)
@@ -104,6 +127,9 @@ namespace JKCASH.WinForms.Telas
                         LimiteChequeEspecial = conta.Saldo.LimiteChequeEspecial,
                         conta.Ativa
                     }).ToList();
+
+                if (dgvContas.Columns[nameof(Conta.Id)] is DataGridViewColumn colunaId)
+                    colunaId.Visible = false;
             }
             catch (Exception erro)
             {

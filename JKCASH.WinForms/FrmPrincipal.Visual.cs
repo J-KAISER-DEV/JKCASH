@@ -1,6 +1,7 @@
-﻿using JKCASH.WinForms.Telas;
-using JKCASH.WinForms.Visual;
+﻿using JKCASH.Application.Servicos;
 using JKCASH.Infrastructure.Repositorios;
+using JKCASH.WinForms.Telas;
+using JKCASH.WinForms.Visual;
 namespace JKCASH.WinForms;
 
 public partial class FrmPrincipal
@@ -114,9 +115,32 @@ public partial class FrmPrincipal
             anterior.Dispose();
         }
 
+        if (tela == "Transações")
+        {
+            CategoriaRepositorioSql categorias = new();
+            TransacaoRepositorioSql repositorioTransacoes = new();
+            TransacaoServico servico = new(
+       repositorioTransacoes,
+       categorias);
+
+            UcTransacoes transacoes = new(
+                new ContaRepositorioSql(),
+                categorias,
+                servico,
+                repositorioTransacoes);
+
+            transacoes.Dock = DockStyle.Fill;
+
+            pnlConteudo.Controls.Add(transacoes);
+            return;
+        }
+
         if (tela == "Contas")
         {
-            UcContas contas =  new(new ContaRepositorioSql());
+            ContaRepositorioSql repositorioContas = new();
+            CategoriaRepositorioSql categorias = new();
+            TransferenciaServico transferencias = new(repositorioContas, categorias, new TransferenciaRepositorioSql());
+            UcContas contas = new(repositorioContas, categorias, transferencias);
             contas.Dock = DockStyle.Fill;
             pnlConteudo.Controls.Add(contas);
             return;
@@ -124,7 +148,8 @@ public partial class FrmPrincipal
 
         if (tela == "Dashboard")
         {
-            UcDashboard dashboard = new();
+            UcDashboard dashboard = new(new ContaRepositorioSql(), new CategoriaRepositorioSql(),
+                new TransacaoRepositorioSql(), new CartaoCreditoRepositorioSql(), new CompraCartaoRepositorioSql());
             dashboard.AbrirTransacoes += (_, _) => AbrirTela("Transações");
             dashboard.AbrirFaturas += (_, _) => AbrirTela("Faturas");
             pnlConteudo.Controls.Add(dashboard);
@@ -140,6 +165,32 @@ public partial class FrmPrincipal
 
             pnlConteudo.Controls.Add(categorias);
 
+            return;
+        }
+        if (tela == "Cartões")
+        {
+            CartaoCreditoRepositorioSql repositorioCartoes = new();
+            CategoriaRepositorioSql categorias = new();
+            CompraCartaoRepositorioSql compras = new();
+            CompraCartaoServico servico = new(repositorioCartoes, categorias, compras);
+            UcCartoes cartoes = new(repositorioCartoes, new ContaRepositorioSql(), categorias, compras, servico);
+
+            cartoes.Dock = DockStyle.Fill;
+
+            pnlConteudo.Controls.Add(cartoes);
+            return;
+        }
+
+        if (tela == "Faturas")
+        {
+            CartaoCreditoRepositorioSql cartoes = new();
+            ContaRepositorioSql contas = new();
+            CategoriaRepositorioSql categorias = new();
+            CompraCartaoRepositorioSql comprasEFaturas = new();
+            PagamentoFaturaServico pagamentos = new(comprasEFaturas, cartoes, contas, categorias);
+            UcFaturas faturas = new(cartoes, comprasEFaturas, comprasEFaturas, contas, categorias, pagamentos)
+            { Dock = DockStyle.Fill };
+            pnlConteudo.Controls.Add(faturas);
             return;
         }
 

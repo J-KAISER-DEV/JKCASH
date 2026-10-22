@@ -1,4 +1,4 @@
-using JKCASH.Domain.Enums;
+﻿using JKCASH.Domain.Enums;
 using JKCASH.Domain.ObjetosDeValor;
 using JKCASH.Domain.Validacoes;
 
@@ -67,5 +67,14 @@ public sealed class FaturaCartao
         if (Pagamentos.Any(existente => existente.Id == pagamento.Id || existente.TransacaoId == pagamento.TransacaoId))
             throw new ArgumentException("O pagamento já foi registrado.", nameof(pagamento));
         return new FaturaCartao(Id, CartaoId, Ciclo, Parcelas, Pagamentos.Append(pagamento));
+    }
+
+    public FaturaCartao SemRegistros(IReadOnlySet<Guid> parcelas, IReadOnlySet<Guid> pagamentos)
+    {
+        var restantes = Parcelas.Where(p => !parcelas.Contains(p.Id)).ToList();
+        var confirmados = Pagamentos.Where(p => !pagamentos.Contains(p.Id)).ToList();
+        if (confirmados.Sum(p => p.Valor) > restantes.Sum(p => p.Valor))
+            throw new InvalidOperationException("Exclua os pagamentos antes de remover as compras desta fatura.");
+        return new FaturaCartao(Id, CartaoId, Ciclo, restantes, confirmados);
     }
 }

@@ -8,6 +8,11 @@ public class CompraCartaoRepositorio : ICompraCartaoRepositorio, IFaturaCartaoRe
 {
     private Dictionary<Guid, CompraCartao> _compras = new();
     private Dictionary<Guid, FaturaCartao> _faturas = new();
+    internal void Substituir(Dictionary<Guid, CompraCartao> compras, Dictionary<Guid, FaturaCartao> faturas)
+    {
+        _compras = compras;
+        _faturas = faturas;
+    }
     private readonly ITransacaoRepositorio? _transacoes;
     private readonly TimeProvider _relogio;
 

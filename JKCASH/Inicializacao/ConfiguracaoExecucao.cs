@@ -53,6 +53,16 @@ namespace JKCASH.Inicializacao
             return new CartaoCreditoRepositorioSql();
         }
 
+        public static IExclusaoRepositorio CriarRepositorioExclusoes(bool usarMemoria,
+            IContaRepositorio contas, ICategoriaRepositorio categorias, ITransacaoRepositorio transacoes,
+            ICartaoCreditoRepositorio cartoes, ICompraCartaoRepositorio compras)
+        {
+            if (!usarMemoria) return new ExclusaoRepositorioSql();
+            return new ExclusaoRepositorioEmMemoria((ContaRepositorioEmMemoria)contas,
+                (CategoriaRepositorioEmMemoria)categorias, (TransacaoRepositoEmMemoria)transacoes,
+                (CartaoCreditoRepositorioEmMemoria)cartoes, (CompraCartaoRepositorio)compras);
+        }
+
         public static ITransferenciaRepositorio CriarRepositorioTransferencias(
             bool usarMemoria, IContaRepositorio contas, ITransacaoRepositorio transacoes)
         {

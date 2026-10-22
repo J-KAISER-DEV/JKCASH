@@ -34,8 +34,11 @@ MenuComprasCartao menuCompras = new(cartoes, categorias, comprasCartao, servicoC
 MenuCartao menuCartao = new(cartoes, contas, menuCompras);
 MenuFaturas menuFaturas = new(cartoes, faturas, comprasCartao,
     contas, categorias, servicoPagamentos);
+IExclusaoRepositorio exclusoes = ConfiguracaoExecucao.CriarRepositorioExclusoes(
+    modoMemoria, contas, categorias, transacoes, cartoes, comprasCartao);
+MenuExclusoes menuExclusoes = new(new ExclusaoServico(exclusoes));
 MenuPrincipal menuPrincipal = new(menuContas, menuCategorias, menuTransacoes, menuCartao,
-    menuFaturas);
+    menuFaturas, menuExclusoes);
 
 // 4. Inicialização do Console.
 if (modoMemoria)

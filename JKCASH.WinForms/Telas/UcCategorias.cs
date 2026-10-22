@@ -37,6 +37,9 @@ namespace JKCASH.WinForms.Telas
             try
             {
                 dgvCategorias.DataSource = _repositorio.ListarTodas();
+
+                if (dgvCategorias.Columns[nameof(Categoria.Id)] is DataGridViewColumn colunaId)
+                    colunaId.Visible = false;
             }
            
             catch (Exception erro) 

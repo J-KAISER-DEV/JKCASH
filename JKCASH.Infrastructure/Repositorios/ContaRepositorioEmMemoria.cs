@@ -9,6 +9,7 @@ namespace JKCASH.Infrastructure.Repositorios
     public class ContaRepositorioEmMemoria : IContaRepositorio
     {
         private Dictionary<Guid, Conta> _contas = new();
+        internal void Substituir(Dictionary<Guid, Conta> contas) => _contas = contas;
         private readonly TransacaoRepositoEmMemoria? _transacoes;
 
         public ContaRepositorioEmMemoria(TransacaoRepositoEmMemoria? transacoes = null)

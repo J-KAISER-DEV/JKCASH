@@ -8,6 +8,7 @@ namespace JKCASH.Infrastructure.Repositorios
     public class TransacaoRepositoEmMemoria : ITransacaoRepositorio
     {
         private Dictionary<Guid, Transacao> _transacoes = new();
+        internal void Substituir(Dictionary<Guid, Transacao> transacoes) => _transacoes = transacoes;
 
         internal void AdicionarTransferencia(Transferencia transferencia)
         {

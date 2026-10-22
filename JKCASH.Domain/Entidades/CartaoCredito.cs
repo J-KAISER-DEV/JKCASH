@@ -47,6 +47,18 @@ namespace JKCASH.Domain.Entidades
             CompraNoFechamentoNaProximaFatura = compraNoFechamentoNaProximaFatura;
 
         }
+        public static CartaoCredito Restaurar(Guid id, Guid contaId, string nome, decimal limite,
+            decimal valorUtilizado, int diaFechamento, int diaVencimento, bool proximaFatura)
+        {
+            Validacao.GuidNaoVazio(id, nameof(id));
+            Validacao.ValorMonetario(valorUtilizado, nameof(valorUtilizado), false);
+            if (valorUtilizado > limite) throw new ArgumentException("O valor utilizado ultrapassa o limite do cartão.");
+            CartaoCredito cartao = new(contaId, nome, limite, diaFechamento, diaVencimento, proximaFatura);
+            cartao.Id = id;
+            cartao.ValorUtilizado = valorUtilizado;
+            return cartao;
+        }
+
         public void RegistrarCompra(decimal valor)
         {
             Validacao.ValorMonetarioPositivo(valor, nameof(valor));

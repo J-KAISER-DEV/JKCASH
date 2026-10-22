@@ -47,6 +47,9 @@
             numLimiteChequeEspecial = new NumericUpDown();
             pnListaContas = new Panel();
             dgvContas = new DataGridView();
+            tabContas = new TabControl();
+            tabCadastroContas = new TabPage();
+            tabTransferirContas = new TabPage();
             pnlCadastroConta.SuspendLayout();
             tlpDadosConta.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)numSaldoInicial).BeginInit();
@@ -82,10 +85,10 @@
             pnlCadastroConta.BackColor = Color.White;
             pnlCadastroConta.Controls.Add(btnSalvarConta);
             pnlCadastroConta.Controls.Add(tlpDadosConta);
-            pnlCadastroConta.Location = new Point(24, 120);
+            pnlCadastroConta.Location = new Point(20, 20);
             pnlCadastroConta.Name = "pnlCadastroConta";
             pnlCadastroConta.Padding = new Padding(20);
-            pnlCadastroConta.Size = new Size(950, 330);
+            pnlCadastroConta.Size = new Size(900, 330);
             pnlCadastroConta.TabIndex = 2;
             // 
             // btnSalvarConta
@@ -96,7 +99,7 @@
             btnSalvarConta.FlatAppearance.BorderSize = 0;
             btnSalvarConta.FlatStyle = FlatStyle.Flat;
             btnSalvarConta.ForeColor = Color.White;
-            btnSalvarConta.Location = new Point(730, 270);
+            btnSalvarConta.Location = new Point(700, 270);
             btnSalvarConta.Name = "btnSalvarConta";
             btnSalvarConta.Size = new Size(180, 40);
             btnSalvarConta.TabIndex = 1;
@@ -124,13 +127,13 @@
             tlpDadosConta.Location = new Point(20, 20);
             tlpDadosConta.Name = "tlpDadosConta";
             tlpDadosConta.RowCount = 6;
-            tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Percent, 33.3333321F));
-            tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Percent, 66.6666641F));
             tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
             tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
             tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
             tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-            tlpDadosConta.Size = new Size(910, 216);
+            tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Absolute, 24F));
+            tlpDadosConta.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
+            tlpDadosConta.Size = new Size(860, 216);
             tlpDadosConta.TabIndex = 0;
             tlpDadosConta.Paint += tlpDadosConta_Paint;
             // 
@@ -251,13 +254,13 @@
             // 
             // pnListaContas
             // 
-            pnListaContas.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            pnListaContas.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
             pnListaContas.BackColor = Color.White;
             pnListaContas.Controls.Add(dgvContas);
-            pnListaContas.Location = new Point(24, 470);
+            pnListaContas.Location = new Point(20, 370);
             pnListaContas.Name = "pnListaContas";
             pnListaContas.Padding = new Padding(20);
-            pnListaContas.Size = new Size(950, 200);
+            pnListaContas.Size = new Size(900, 280);
             pnListaContas.TabIndex = 3;
             // 
             // dgvContas
@@ -275,21 +278,46 @@
             dgvContas.ReadOnly = true;
             dgvContas.RowHeadersVisible = false;
             dgvContas.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvContas.Size = new Size(910, 160);
+            dgvContas.Size = new Size(860, 240);
             dgvContas.TabIndex = 0;
             // 
+            // tabContas
+            tabContas.Name = "tabContas";
+            tabContas.Location = new Point(24, 120);
+            tabContas.Size = new Size(950, 750);
+            tabContas.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            tabContas.SelectedIndex = 0;
+            tabContas.TabIndex = 2;
+            // tabCadastroContas
+            tabCadastroContas.Name = "tabCadastroContas";
+            tabCadastroContas.Text = "Contas cadastradas";
+            tabCadastroContas.BackColor = Color.White;
+            tabCadastroContas.Padding = new Padding(20);
+            tabCadastroContas.Size = new Size(942, 720);
+            tabCadastroContas.AutoScroll = true;
+            tabCadastroContas.AutoScrollMinSize = new Size(0, 680);
+            // tabTransferirContas
+            tabTransferirContas.Name = "tabTransferirContas";
+            tabTransferirContas.Text = "Transferir entre contas";
+            tabTransferirContas.BackColor = Color.White;
+            tabTransferirContas.Padding = new Padding(20);
+            tabTransferirContas.Size = new Size(942, 720);
+            tabContas.Controls.Add(tabCadastroContas);
+            tabContas.Controls.Add(tabTransferirContas);
+            tabCadastroContas.Controls.Add(pnlCadastroConta);
+            tabCadastroContas.Controls.Add(pnListaContas);
+            //
             // UcContas
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(244, 246, 248);
-            Controls.Add(pnListaContas);
-            Controls.Add(pnlCadastroConta);
+            Controls.Add(tabContas);
             Controls.Add(lbDescricaoContas);
             Controls.Add(lbTituloContas);
             Font = new Font("Segoe UI", 10F);
             Name = "UcContas";
-            Size = new Size(1000, 700);
+            Size = new Size(1000, 907);
             pnlCadastroConta.ResumeLayout(false);
             tlpDadosConta.ResumeLayout(false);
             tlpDadosConta.PerformLayout();
@@ -322,5 +350,8 @@
         private Button btnSalvarConta;
         private Panel pnListaContas;
         private DataGridView dgvContas;
+        private TabControl tabContas;
+        private TabPage tabCadastroContas;
+        private TabPage tabTransferirContas;
     }
 }

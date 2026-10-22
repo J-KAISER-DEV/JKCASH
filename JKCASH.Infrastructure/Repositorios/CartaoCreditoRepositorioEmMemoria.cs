@@ -8,7 +8,8 @@ namespace JKCASH.Infrastructure.Repositorios
 {
     public class CartaoCreditoRepositorioEmMemoria : ICartaoCreditoRepositorio
     {
-        private readonly Dictionary<Guid, CartaoCredito> _cartoes = new();
+        private Dictionary<Guid, CartaoCredito> _cartoes = new();
+        internal void Substituir(Dictionary<Guid, CartaoCredito> cartoes) => _cartoes = cartoes;
 
         public void Adicionar(CartaoCredito cartao)
         {

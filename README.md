@@ -14,11 +14,27 @@ dotnet build JKCASH.sln
 
 O projeto de estudos `C#Aprendizado` tem uma solução própria em `C#Aprendizado/C#Aprendizado.slnx`.
 
-## Interface Windows Forms — prévia visual
+## Interface Windows Forms
 
-Defina **JKCASH.WinForms** como projeto de inicialização e execute com F5. O dashboard segue a referência visual aprovada: menu azul escuro, fundo claro, botões verdes, cartões de indicadores, barras por categoria e tabela de movimentações. Menu e atalhos permitem navegar entre as seis seções; fora do dashboard, as telas estão sinalizadas como em construção.
+Defina **JKCASH.WinForms** como projeto de inicialização e execute com F5. O dashboard segue a referência visual aprovada: menu azul escuro, fundo claro, botões verdes, cartões de indicadores, barras por categoria e tabela de movimentações. Contas e Categorias permitem consultar e cadastrar no SQL; Transações permite registrar movimentações e consultar o extrato. Cartões permite cadastrar cartões, registrar compras e consultar o histórico e as parcelas. Faturas permite consultar os ciclos e registrar pagamentos totais ou parciais.
 
-Esta etapa usa valores ilustrativos, identificados no rodapé, e não consulta nem altera o banco. Os filtros contêm somente o cenário demonstrativo. As funções financeiras continuam disponíveis no projeto Console enquanto conectamos as telas aos serviços existentes.
+O **dashboard** consulta dados reais do SQL. O filtro inclui todas as contas (inclusive inativas) ou uma conta específica, e permite escolher o mês. Saldo e limites são atuais; receitas, despesas, saídas por categoria e últimas movimentações correspondem ao mês selecionado. Transferências internas não contam como receitas ou despesas. Faturas pendentes somam o saldo ainda não pago dos ciclos com vencimento no mês, dos cartões vinculados às contas selecionadas. Categorias adicionais são agrupadas em Outras categorias no gráfico. Use Atualizar ou volte ao dashboard para consultar novamente.
+
+Em **Cartões**, a primeira aba cadastra cartões e mostra limites. Em **Registrar compra**, selecione cartão, categoria, importância, planejamento, urgência, data, valor total e parcelas (1 para à vista, até 120), além de descrição e justificativa. O serviço existente valida a compra e grava compra, parcelas, faturas e limite em conjunto. **Compras do cartão** mostra o histórico e os detalhes de cada compra, incluindo os vencimentos das parcelas. Compras futuras ou de ciclos encerrados são recusadas. O saldo da conta não muda ao comprar no cartão.
+
+Em **Faturas**, selecione um cartão e uma fatura para ver parcelas e pagamentos confirmados. Escolha uma conta ativa (pode ser de outro banco), a categoria da saída e o valor já pago. Preencher valor pendente prepara o valor; somente **Confirmar pagamento** grava. A data é a de hoje. O serviço aceita pagamentos parciais, recusa valores acima do pendente e confere saldo e cheque especial. Histórico, saída da conta, saldo e limite são gravados juntos. A indicação de atraso não calcula juros nem multas. Identificadores técnicos ficam internos; as telas financeiras permanecem dentro da janela principal.
+
+### Extrato e detalhes na interface gráfica
+
+Em **Contas > Transferir entre contas**, selecione duas contas ativas, informe valor, categoria, importância, planejamento, urgência, descrição e justificativa. A origem é retirada das opções de destino. A tela mostra o saldo atual e o disponível com cheque especial, mas o serviço consulta novamente as contas ao confirmar. A data é a de hoje. **Confirmar transferência** grava os dois saldos e uma saída/entrada vinculadas na mesma operação. Ao concluir, os saldos da tela de Contas são atualizados; o extrato e o dashboard consultam os dados ao abrir ou atualizar suas telas. Transferências internas não contam como receitas ou despesas. **Atualizar contas** consulta os saldos e as categorias novamente.
+
+Em **Transações > Extrato**, escolha as datas inicial e final. O período padrão é do início do mês até hoje, incluindo os dois dias inteiros. **Todas as contas** inclui também contas inativas, preservando a consulta ao histórico. Para consultar uma ou várias contas, desmarque essa opção e marque as contas desejadas na lista. Use **Consultar extrato** para aplicar os filtros; retornar à aba também atualiza o resultado.
+
+A tabela mostra data, nome da conta, descrição, categoria, tipo e valor, sem identificadores técnicos. Os totais separam receitas e despesas das transferências internas. O resultado do período não é o saldo atual da conta.
+
+Selecione uma linha e clique em **Ver detalhes**, ou dê dois cliques na linha. Um painel na própria tela mostra conta, banco, data, tipo, valor, categoria, importância, planejamento, urgência, descrição e justificativa. Selecionar outra linha atualiza esse painel; **Fechar detalhes** amplia novamente a tabela. Nenhuma janela adicional é aberta.
+
+Datas invertidas, seleção vazia, ausência de movimentações e falhas de conexão são informadas na própria aba. As consultas executam em segundo plano para manter a navegação responsiva e não gravam no banco. `UcTransacoes.Designer.cs` guarda os controles; `UcTransacoes.Extrato.cs` concentra os eventos de filtro, consulta, totais e detalhes. Os construtores recebem a mesma instância de `ITransacaoRepositorio` usada pelo serviço de registro.
 
 `FrmPrincipal.Designer.cs` mantém a estrutura dos painéis da janela. `FrmPrincipal.Visual.cs` configura o menu e a navegação em execução; abra esse arquivo como código. `Telas/UcDashboard.cs` organiza o conteúdo com `TableLayoutPanel`, `Panel`, `Label`, `ComboBox`, `Button` e `DataGridView`. `Visual/EstiloVisual.cs` centraliza a paleta, botões, ícones e desenho das bordas, usando somente Windows Forms e System.Drawing. Para conferir o acabamento completo, execute o projeto; o designer da janela mantém apenas a estrutura básica.
 
@@ -57,6 +73,7 @@ O menu principal mostra somente os grupos. Dentro de cada submenu, **0 - Voltar*
 | 3 - Cartões | Cadastrar e listar cartões, registrar e consultar compras |
 | 4 - Faturas | Listar, consultar parcelas e pagamentos, registrar pagamento |
 | 5 - Categorias | Cadastrar e listar categorias |
+| 6 - Excluir registros | Excluir contas, categorias, transações, transferências, cartões, compras, faturas, pagamentos e parcelas |
 
 Cada classe de menu organiza suas operações. `NavegacaoConsole` reutiliza a exibição das opções, o retorno e o tratamento de erros. `Program.cs` cria os repositórios e serviços conforme o modo escolhido. As interfaces de compras e faturas recebem a mesma instância de repositório.
 
@@ -72,7 +89,21 @@ Em **Contas > 4 - Transferir entre contas**, escolha a origem, informe o valor e
 
 O extrato identifica as transferências e apresenta os totais enviados e recebidos separadamente das entradas e saídas comuns. Os resumos de gastos por categoria, planejamento, importância e urgência não incluem transferências internas, mesmo quando apenas uma das contas é selecionada. Transferências não modificam os saldos iniciais e não representam compras no cartão nem pagamentos de fatura.
 
-Contas que participam de transferências não podem ser excluídas nesta versão: remover apenas um lado apagaria parte do histórico de outra conta. Estorno e exclusão conjunta de transferências ficam para uma funcionalidade própria.
+Contas que participam de transferências exigem a exclusão prévia das transferências em **Excluir registros > Transferências**. A exclusão da transferência remove os dois registros juntos e reverte os dois saldos. Selecionar uma das transações de uma transferência nesse submenu também remove o par completo.
+
+## Exclusão de registros no Console
+
+Abra **Menu principal > 6 - Excluir registros**. Selecione o tipo e o registro: o programa apresenta os registros afetados e as mudanças de saldo e limite antes da confirmação. Digite **EXCLUIR** para confirmar; qualquer outra resposta cancela. A exclusão é definitiva e não gera backup.
+
+- **Cartão:** remove suas compras, todas as parcelas, faturas, pagamentos e as saídas associadas aos pagamentos. O saldo das contas pagadoras é recomposto. As contas e movimentações sem vínculo com o cartão permanecem.
+- **Transação:** desfaz seu efeito no saldo. Quando vinculada a pagamento, também reverte esse pagamento; quando vinculada a transferência, remove os dois lados.
+- **Compra ou parcela:** remove a compra inteira e todas as suas parcelas, inclusive de outros meses, e libera o limite correspondente. Faturas que ficarem vazias são removidas. Havendo pagamentos nas faturas afetadas, remova esses pagamentos primeiro.
+- **Fatura:** remove as compras completas relacionadas e suas parcelas de todos os meses. Pagamentos nas faturas afetadas precisam ser excluídos primeiro. A prévia mostra a abrangência da remoção.
+- **Pagamento:** remove o pagamento e sua saída na conta, devolve o dinheiro à conta e recompõe o valor utilizado no cartão. A operação é recusada se ultrapassar o limite atual do cartão.
+- **Conta:** remove a conta e suas transações comuns. Cartões, pagamentos e transferências vinculados precisam ser removidos primeiro.
+- **Categoria:** somente pode ser removida se não estiver em uso por transações ou compras.
+
+A exclusão não pode deixar uma conta abaixo do cheque especial nem o cartão fora de seu limite. A aplicação verifica se os dados mudaram desde a prévia. No SQL, exclusões e ajustes são confirmados em uma única transação serializável; uma falha desfaz a operação inteira. Em memória, as coleções são preparadas antes da substituição. Essa opção está disponível no Console nos dois modos de execução.
 
 ## Cartões de crédito
 
