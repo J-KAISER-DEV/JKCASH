@@ -1,0 +1,6 @@
+@JKCASH.Api_HostAddress = http://localhost:5115
+
+GET {{JKCASH.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

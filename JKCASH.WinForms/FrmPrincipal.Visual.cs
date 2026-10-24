@@ -117,14 +117,14 @@ public partial class FrmPrincipal
 
         if (tela == "Transações")
         {
-            CategoriaRepositorioSql categorias = new();
-            TransacaoRepositorioSql repositorioTransacoes = new();
+            CategoriaRepositorioLocal categorias = new();
+            TransacaoRepositorioLocal repositorioTransacoes = new();
             TransacaoServico servico = new(
        repositorioTransacoes,
        categorias);
 
             UcTransacoes transacoes = new(
-                new ContaRepositorioSql(),
+                new ContaRepositorioLocal(),
                 categorias,
                 servico,
                 repositorioTransacoes);
@@ -137,9 +137,10 @@ public partial class FrmPrincipal
 
         if (tela == "Contas")
         {
-            ContaRepositorioSql repositorioContas = new();
-            CategoriaRepositorioSql categorias = new();
-            TransferenciaServico transferencias = new(repositorioContas, categorias, new TransferenciaRepositorioSql());
+            ContaRepositorioLocal repositorioContas = new();
+            CategoriaRepositorioLocal categorias = new();
+            TransferenciaServico transferencias = new(
+                repositorioContas, categorias, new TransferenciaRepositorioLocal());
             UcContas contas = new(repositorioContas, categorias, transferencias);
             contas.Dock = DockStyle.Fill;
             pnlConteudo.Controls.Add(contas);
@@ -148,8 +149,8 @@ public partial class FrmPrincipal
 
         if (tela == "Dashboard")
         {
-            UcDashboard dashboard = new(new ContaRepositorioSql(), new CategoriaRepositorioSql(),
-                new TransacaoRepositorioSql(), new CartaoCreditoRepositorioSql(), new CompraCartaoRepositorioSql());
+            UcDashboard dashboard = new(new ContaRepositorioLocal(), new CategoriaRepositorioLocal(),
+                new TransacaoRepositorioLocal(), new CartaoCreditoRepositorioLocal(), new CompraCartaoRepositorioLocal());
             dashboard.AbrirTransacoes += (_, _) => AbrirTela("Transações");
             dashboard.AbrirFaturas += (_, _) => AbrirTela("Faturas");
             pnlConteudo.Controls.Add(dashboard);
@@ -159,7 +160,7 @@ public partial class FrmPrincipal
         }
         if (tela == "Categorias")
         {
-            UcCategorias categorias = new(new CategoriaRepositorioSql());
+            UcCategorias categorias = new(new CategoriaRepositorioLocal());
 
             categorias.Dock = DockStyle.Fill;
 
@@ -169,11 +170,11 @@ public partial class FrmPrincipal
         }
         if (tela == "Cartões")
         {
-            CartaoCreditoRepositorioSql repositorioCartoes = new();
-            CategoriaRepositorioSql categorias = new();
-            CompraCartaoRepositorioSql compras = new();
+            CartaoCreditoRepositorioLocal repositorioCartoes = new();
+            CategoriaRepositorioLocal categorias = new();
+            CompraCartaoRepositorioLocal compras = new();
             CompraCartaoServico servico = new(repositorioCartoes, categorias, compras);
-            UcCartoes cartoes = new(repositorioCartoes, new ContaRepositorioSql(), categorias, compras, servico);
+            UcCartoes cartoes = new(repositorioCartoes, new ContaRepositorioLocal(), categorias, compras, servico);
 
             cartoes.Dock = DockStyle.Fill;
 
@@ -183,10 +184,10 @@ public partial class FrmPrincipal
 
         if (tela == "Faturas")
         {
-            CartaoCreditoRepositorioSql cartoes = new();
-            ContaRepositorioSql contas = new();
-            CategoriaRepositorioSql categorias = new();
-            CompraCartaoRepositorioSql comprasEFaturas = new();
+            CartaoCreditoRepositorioLocal cartoes = new();
+            ContaRepositorioLocal contas = new();
+            CategoriaRepositorioLocal categorias = new();
+            CompraCartaoRepositorioLocal comprasEFaturas = new();
             PagamentoFaturaServico pagamentos = new(comprasEFaturas, cartoes, contas, categorias);
             UcFaturas faturas = new(cartoes, comprasEFaturas, comprasEFaturas, contas, categorias, pagamentos)
             { Dock = DockStyle.Fill };

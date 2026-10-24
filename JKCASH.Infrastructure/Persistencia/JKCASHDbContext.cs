@@ -4,6 +4,7 @@ using System.Text;
 using JKCASH.Domain.Entidades;
 using Microsoft.EntityFrameworkCore;
 using JKCASH.Infrastructure.Persistencia.Mapeamentos;
+using JKCASH.Infrastructure.Persistencia.Conversores;
 namespace JKCASH.Infrastructure.Persistencia
 {
     public class JKCASHDbContext : DbContext
@@ -81,7 +82,10 @@ namespace JKCASH.Infrastructure.Persistencia
             transacao.Property(t => t.Valor).HasPrecision(18, 2);
             transacao.Property(t => t.Descricao).HasMaxLength(200).IsRequired();
             transacao.Property(t => t.Justificativa).HasMaxLength(500).IsRequired();
-            transacao.Property(t => t.Data).HasColumnType("datetime2");
+            if (Database.IsSqlServer())
+            {
+                transacao.Property(t => t.Data).HasColumnType("datetime2");
+            }
             transacao.HasOne<Conta>().WithMany()
                 .HasForeignKey(t => t.ContaId).OnDelete(DeleteBehavior.Restrict);
             transacao.HasOne<Categoria>().WithMany()
@@ -123,6 +127,46 @@ namespace JKCASH.Infrastructure.Persistencia
 
             modelBuilder.ApplyConfiguration(
                 new PagamentoFaturaMapeamento());
+
+            if (Database.IsSqlite())
+            {
+                modelBuilder.Entity<CompraCartao>()
+                    .Property(compra => compra.Data)
+                    .HasColumnType("TEXT");
+
+                modelBuilder.Entity<PagamentoFatura>()
+                   .Property(pagamento => pagamento.Data)
+                   .HasColumnType("TEXT");
+
+                modelBuilder.Entity<FaturaCartao>()
+                   .OwnsOne(fatura => fatura.Ciclo, ciclo =>
+                   {
+                       ciclo.Property(c => c.Fechamento)
+                       .HasColumnType("TEXT");
+
+                       ciclo.Property(c => c.Vencimento)
+                       .HasColumnType("TEXT");
+
+                       ciclo.Property(c => c.Encerramento)
+                       .HasColumnType("TEXT");
+                   });
+
+                var conversor = new ConversorMoeda();
+
+                foreach (var entidade in modelBuilder.Model.GetEntityTypes())
+                {
+                    foreach (var propriedade in entidade.GetProperties())
+                    {
+                        if (propriedade.ClrType == typeof(decimal))
+                        {
+                            propriedade.SetValueConverter(conversor);
+                            propriedade.SetColumnType("INTEGER");
+                            propriedade.SetPrecision(null);
+                            propriedade.SetScale(null);
+                        }
+                    }
+                }
+            }
         }
     }
 }
