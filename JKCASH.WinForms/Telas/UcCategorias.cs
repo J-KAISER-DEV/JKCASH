@@ -1,96 +1,113 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
+using JKCASH.Application.Modelos;
+using System.Diagnostics;
 using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
-namespace JKCASH.WinForms.Telas
+using JKCASH.WinForms.Visual;
+
+namespace JKCASH.WinForms.Telas;
+
+public partial class UcCategorias : UserControl
 {
-    public partial class UcCategorias : UserControl
+    private readonly IConfirmacaoOperacao _confirmacao = ConfirmacaoOperacao.Padrao;
+    private readonly ICategoriaRepositorio? _repositorio;
+    private readonly BarraAtualizacao _consulta;
+    private bool _ocupado, _consultaValida;
+
+    public UcCategorias()
     {
-        private readonly ICategoriaRepositorio? _repositorio;
-        public UcCategorias()
+        InitializeComponent();
+        _consulta = new BarraAtualizacao(pnListaCategorias);
+        _consulta.Atualizar.Click += async (_, _) => await AtualizarCategoriasAsync();
+        AtualizarEstado();
+    }
+
+    public UcCategorias(ICategoriaRepositorio repositorio, IConfirmacaoOperacao? confirmacao = null) : this()
+    {
+        ArgumentNullException.ThrowIfNull(repositorio);
+        _repositorio = repositorio;
+        _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
+        Load += async (_, _) => await AtualizarCategoriasAsync();
+        btnSalvarCategoria.Click += async (_, _) => await SalvarCategoriaAsync();
+    }
+
+    private async Task AtualizarCategoriasAsync()
+    {
+        if (_ocupado || _repositorio is null || IsDisposed || Disposing) return;
+        Ocupar(true, "Consultando categorias…");
+        try { await CarregarCoreAsync(); }
+        catch (Exception erro)
         {
-            InitializeComponent();
+            Debug.WriteLine(erro);
+            if (IsDisposed || Disposing) return;
+            InvalidarConsulta("Não foi possível consultar as categorias. Use Atualizar dados para tentar novamente.");
         }
+        finally { Ocupar(false); }
+    }
 
-        public UcCategorias(ICategoriaRepositorio repositorio) : this()
+    private async Task CarregarCoreAsync()
+    {
+        var categorias = await Task.Run(() => _repositorio!.ListarTodas());
+        if (IsDisposed || Disposing) return;
+        dgvCategorias.DataSource = categorias;
+        if (dgvCategorias.Columns[nameof(Categoria.Id)] is DataGridViewColumn colunaId)
+            colunaId.Visible = false;
+        _consultaValida = true;
+        _consulta.Mostrar(categorias.Count == 0 ? "Nenhuma categoria cadastrada." : "Categorias atualizadas.");
+    }
+
+    private async Task SalvarCategoriaAsync()
+    {
+        if (_ocupado || !_consultaValida || _repositorio is null || IsDisposed || Disposing) return;
+        bool gravando = false, salva = false;
+        Ocupar(true, "Salvando categoria…");
+        try
         {
-            ArgumentNullException.ThrowIfNull(repositorio);
-
-            _repositorio = repositorio;
-
-            Load += (_, _) => CarregarCategorias();
-            btnSalvarCategoria.Click += (_, _) => SalvarCategoria();
+            Categoria categoria = new(txtNomeCategoria.Text);
+            if (!_confirmacao.Confirmar(this, "Cadastrar categoria", ResumoOperacao.Categoria(categoria)))
+            { _consulta.Mostrar("Cadastro cancelado. Preenchimento preservado."); return; }
+            gravando = true;
+            await Task.Run(() => _repositorio.Adicionar(categoria));
+            salva = true;
+            if (IsDisposed || Disposing) return;
+            txtNomeCategoria.Clear();
+            await CarregarCoreAsync();
+            if (IsDisposed || Disposing) return;
+            _consulta.Mostrar("Categoria salva. Lista atualizada.");
+            txtNomeCategoria.Focus();
         }
-
-        private void CarregarCategorias()
+        catch (Exception erro)
         {
-            if (_repositorio is null)
-            {
-                return;
-            }
-
-            try
-            {
-                dgvCategorias.DataSource = _repositorio.ListarTodas();
-
-                if (dgvCategorias.Columns[nameof(Categoria.Id)] is DataGridViewColumn colunaId)
-                    colunaId.Visible = false;
-            }
-           
-            catch (Exception erro) 
-            {
-                MessageBox.Show(
-                    $"Não foi possivel carregar as categorias. \n {erro.Message}",
-                    "JKCASH",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-
+            Debug.WriteLine(erro);
+            if (IsDisposed || Disposing) return;
+            if (!gravando) _consulta.Mostrar(erro.Message, true);
+            else InvalidarConsulta(salva
+                ? "A categoria foi salva, mas a lista não pôde ser atualizada. Use Atualizar dados para conferir."
+                : "Não foi possível confirmar a gravação. Atualize e confira a lista antes de cadastrar novamente.");
         }
-        private void SalvarCategoria()
-        {
-            if (_repositorio is null)
-                return;
+        finally { Ocupar(false); }
+    }
 
-            try
-            {
-                Categoria categoria = new(txtNomeCategoria.Text);
+    private void InvalidarConsulta(string mensagem)
+    {
+        _consultaValida = false;
+        dgvCategorias.DataSource = null;
+        _consulta.Mostrar(mensagem, true);
+    }
 
-                _repositorio.Adicionar(categoria);
+    private void Ocupar(bool ocupado, string? mensagem = null)
+    {
+        _ocupado = ocupado;
+        if (IsDisposed || Disposing) return;
+        if (mensagem is not null) _consulta.Mostrar(mensagem);
+        AtualizarEstado();
+    }
 
-                txtNomeCategoria.Clear();
-
-                MessageBox.Show(
-                    "Categoria salva com sucesso!",
-                    "JKCASH",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
-                CarregarCategorias();
-
-                txtNomeCategoria.Focus();
-            }
-            catch (ArgumentException erro)
-            {
-                MessageBox.Show(
-                    erro.Message,
-                    "Confira o nome da categoria",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-            catch (Exception erro)
-            {
-                MessageBox.Show(
-                    $"Não foi possível salvar a categoria.\n{erro.Message}",
-                    "JKCASH",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-        }
+    private void AtualizarEstado()
+    {
+        if (IsDisposed || Disposing) return;
+        UseWaitCursor = _ocupado;
+        txtNomeCategoria.Enabled = !_ocupado;
+        btnSalvarCategoria.Enabled = !_ocupado && _consultaValida;
+        _consulta.Atualizar.Enabled = !_ocupado;
     }
 }

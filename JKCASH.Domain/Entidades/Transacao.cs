@@ -16,10 +16,10 @@ namespace JKCASH.Domain.Entidades
         public string Descricao { get; private set; } = string.Empty;
         public DateTime Data {  get; private set; }
         public Guid CategoriaId { get; private set; }
-        public ImportanciaTransacao Importancia { get; private set; }
+        public ImportanciaTransacao? Importancia { get; private set; }
         public PlanejamentoTransacao? Planejamento { get; private set; }
         public UrgenciaTransacao? Urgencia { get; private set; }
-        public string Justificativa { get; private set; } = string.Empty;
+        public string? Justificativa { get; private set; }
 
         private Transacao() { }
 
@@ -32,6 +32,12 @@ namespace JKCASH.Domain.Entidades
             Validacao.GuidNaoVazio(transferenciaId, nameof(transferenciaId));
             Transacao transacao = new(contaId, tipo, valor, descricao, data,
                 categoriaId, importancia, planejamento, urgencia, justificativa);
+            // Transferências preservam a avaliação nos dois registros do par.
+            ValidarAvaliacao(importancia, planejamento, urgencia, justificativa);
+            transacao.Importancia = importancia;
+            transacao.Planejamento = planejamento;
+            transacao.Urgencia = urgencia;
+            transacao.Justificativa = justificativa;
             transacao.TransferenciaId = transferenciaId;
             return transacao;
         }
@@ -43,10 +49,10 @@ namespace JKCASH.Domain.Entidades
         string descricao,
         DateTime data,
         Guid categoriaId,
-        ImportanciaTransacao importancia,
-        PlanejamentoTransacao planejamento,
-        UrgenciaTransacao urgencia,
-        string justificativa)
+        ImportanciaTransacao? importancia = null,
+        PlanejamentoTransacao? planejamento = null,
+        UrgenciaTransacao? urgencia = null,
+        string? justificativa = null)
         {
             Validacao.GuidNaoVazio(contaId, nameof(contaId));
             Validacao.EnumValido(tipo, nameof(tipo));
@@ -55,11 +61,8 @@ namespace JKCASH.Domain.Entidades
             Validacao.TextoObrigatorio(descricao, nameof(descricao),200);
 
             Validacao.GuidNaoVazio(categoriaId, nameof(categoriaId));
-            Validacao.EnumValido(importancia, nameof(importancia));
-            Validacao.EnumValido(planejamento, nameof(planejamento));
-            Validacao.EnumValido(urgencia, nameof(urgencia));
-
-            Validacao.TextoObrigatorio(justificativa, nameof(justificativa),500);
+            if (tipo == TipoTransacao.Saida)
+                ValidarAvaliacao(importancia, planejamento, urgencia, justificativa);
           
             Id = Guid.NewGuid();
             ContaId = contaId;
@@ -68,10 +71,21 @@ namespace JKCASH.Domain.Entidades
             Descricao = descricao;
             Data = data;
            CategoriaId = categoriaId;
-            Importancia = importancia;
-            Planejamento = planejamento;
-            Urgencia = urgencia;
-            Justificativa = justificativa;
+            Importancia = tipo == TipoTransacao.Saida ? importancia : null;
+            Planejamento = tipo == TipoTransacao.Saida ? planejamento : null;
+            Urgencia = tipo == TipoTransacao.Saida ? urgencia : null;
+            Justificativa = tipo == TipoTransacao.Saida ? justificativa : null;
+        }
+
+        private static void ValidarAvaliacao(ImportanciaTransacao? importancia,
+            PlanejamentoTransacao? planejamento, UrgenciaTransacao? urgencia, string? justificativa)
+        {
+            if (!importancia.HasValue || !planejamento.HasValue || !urgencia.HasValue)
+                throw new ArgumentException("Informe importância, planejamento e urgência da saída.");
+            Validacao.EnumValido(importancia.Value, nameof(importancia));
+            Validacao.EnumValido(planejamento.Value, nameof(planejamento));
+            Validacao.EnumValido(urgencia.Value, nameof(urgencia));
+            Validacao.TextoObrigatorio(justificativa ?? "", nameof(justificativa), 500);
         }
     }
 }

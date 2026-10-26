@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Application.Modelos;
 
 namespace JKCASH.Infrastructure.Repositorios;
@@ -8,7 +8,11 @@ public sealed class ExclusaoRepositorioEmMemoria(
     TransacaoRepositoEmMemoria transacoes, CartaoCreditoRepositorioEmMemoria cartoes,
     CompraCartaoRepositorio compras) : IExclusaoRepositorio
 {
-    public EstadoFinanceiro Carregar()
+    public List<ItemExclusao> Listar(TipoRegistro tipo) => CatalogoExclusao.Listar(CarregarTudo(), tipo);
+
+    public EstadoFinanceiro Carregar(TipoRegistro tipo, Guid id) => CarregarTudo();
+
+    private EstadoFinanceiro CarregarTudo()
     {
         var listaCartoes = cartoes.ListarTodos();
         return new(contas.ListarTodas(), categorias.ListarTodas(), transacoes.ListarTodas(), listaCartoes,
@@ -16,9 +20,9 @@ public sealed class ExclusaoRepositorioEmMemoria(
             listaCartoes.SelectMany(c => ((IFaturaCartaoRepositorio)compras).ListarPorCartao(c.Id)).ToList());
     }
 
-    public void Salvar(EstadoFinanceiro atualizado, string versaoOriginal)
+    public void Salvar(EstadoFinanceiro atualizado, PreviaExclusao previa)
     {
-        if (Carregar().Assinatura() != versaoOriginal)
+        if (CarregarTudo().Assinatura() != previa.Versao)
             throw new InvalidOperationException("Os dados foram alterados. Consulte a prévia novamente.");
 
         // Prepara todas as coleções antes de substituir o armazenamento do Console.

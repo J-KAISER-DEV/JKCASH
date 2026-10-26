@@ -30,10 +30,10 @@ namespace JKCASH.Application.Servicos
             string descricao,
             DateTime data,
             Guid categoriaId,
-            ImportanciaTransacao importancia,
-            PlanejamentoTransacao planejamento,
-            UrgenciaTransacao urgencia,
-            string justificativa)
+            ImportanciaTransacao? importancia = null,
+            PlanejamentoTransacao? planejamento = null,
+            UrgenciaTransacao? urgencia = null,
+            string? justificativa = null)
         {
             ArgumentNullException.ThrowIfNull(conta);
             if (!conta.Ativa)

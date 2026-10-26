@@ -81,7 +81,7 @@ namespace JKCASH.Infrastructure.Persistencia
                 .HasFilter("[TransferenciaId] IS NOT NULL");
             transacao.Property(t => t.Valor).HasPrecision(18, 2);
             transacao.Property(t => t.Descricao).HasMaxLength(200).IsRequired();
-            transacao.Property(t => t.Justificativa).HasMaxLength(500).IsRequired();
+            transacao.Property(t => t.Justificativa).HasMaxLength(500).IsRequired(false);
             if (Database.IsSqlServer())
             {
                 transacao.Property(t => t.Data).HasColumnType("datetime2");

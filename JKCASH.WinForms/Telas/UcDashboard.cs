@@ -177,8 +177,9 @@ public sealed class UcDashboard : UserControl
 
     private async Task AtualizarDashboardAsync()
     {
-        if (_ocupado || _consulta is null) return;
+        if (_ocupado || _consulta is null || IsDisposed || Disposing) return;
         _ocupado = true;
+        UseWaitCursor = true;
         _atualizar.Enabled = _cmbContas.Enabled = _mes.Enabled = false;
         _status.Text = "Consultando dados…";
         Guid? contaId = (_cmbContas.SelectedItem as OpcaoConta)?.Id;
@@ -230,7 +231,11 @@ public sealed class UcDashboard : UserControl
         finally
         {
             _ocupado = false;
-            if (!IsDisposed) _atualizar.Enabled = _cmbContas.Enabled = _mes.Enabled = true;
+            if (!IsDisposed)
+            {
+                UseWaitCursor = false;
+                _atualizar.Enabled = _cmbContas.Enabled = _mes.Enabled = true;
+            }
         }
     }
 

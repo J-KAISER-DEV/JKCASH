@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 
@@ -89,6 +90,11 @@ public sealed class MenuFaturas
         Categoria categoria = MenuCategorias.SelecionarCategoria(categorias);
         Console.WriteLine("Registre somente um pagamento já confirmado, com data de hoje.");
         decimal valor = LeituraConsole.LerDecimal($"Valor pago (pendente: {fatura.SaldoPendente:C2}): ");
+        CartaoCredito cartao = _cartoes.BuscarPorId(fatura.CartaoId) ?? throw new InvalidOperationException("Cartão não encontrado.");
+        _ = new PagamentoFatura(fatura.Id, conta.Id, Guid.NewGuid(), valor, DateTime.Today);
+        conta.ValidarSaida(valor);
+        if (valor > fatura.SaldoPendente || valor > cartao.ValorUtilizado) throw new ArgumentException("O pagamento ultrapassa o valor pendente ou utilizado.");
+        if (!ConfirmacaoConsole.Confirmar("Registrar pagamento", ResumoOperacao.Pagamento(fatura, conta, cartao, valor) + "\nCategoria: " + categoria.Nome)) return;
         PagamentoFatura pagamento = _pagamentos.Registrar(fatura.Id, conta.Id, valor, categoria.Id);
         Console.WriteLine($"Pagamento confirmado! Id: {pagamento.Id}");
         // Recarrega o saldo, pois no modo SQL o serviço usa outra instância da conta.

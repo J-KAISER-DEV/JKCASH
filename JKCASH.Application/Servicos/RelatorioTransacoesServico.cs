@@ -60,7 +60,7 @@ namespace JKCASH.Application.Servicos
 
             return transacoes
                 .Where(transacao => transacao.Tipo == TipoTransacao.Saida && transacao.TransferenciaId == null)
-                .GroupBy(transacao => transacao.Importancia.ToString())
+                .GroupBy(transacao => transacao.Importancia?.ToString() ?? "Não informada")
                 .ToDictionary(
                     grupo => grupo.Key,
                     grupo => grupo.Sum(transacao => transacao.Valor));

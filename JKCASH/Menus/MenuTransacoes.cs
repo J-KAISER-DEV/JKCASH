@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -177,14 +178,24 @@ namespace JKCASH.Menus
             {
                 conta.ValidarSaida(valor);
             }
-            ImportanciaTransacao importancia = LeituraConsole.LerOpcao<ImportanciaTransacao>();
-            PlanejamentoTransacao planejamento = LeituraConsole.LerOpcao<PlanejamentoTransacao>();
-            UrgenciaTransacao urgencia = LeituraConsole.LerOpcao<UrgenciaTransacao>();
+            ImportanciaTransacao? importancia = null;
+            PlanejamentoTransacao? planejamento = null;
+            UrgenciaTransacao? urgencia = null;
+            if (tipo == TipoTransacao.Saida)
+            {
+                importancia = LeituraConsole.LerOpcao<ImportanciaTransacao>();
+                planejamento = LeituraConsole.LerOpcao<PlanejamentoTransacao>();
+                urgencia = LeituraConsole.LerOpcao<UrgenciaTransacao>();
+            }
             Categoria categoria = MenuCategorias.SelecionarCategoria(listaCategorias);
             string descricao = LeituraConsole.LerTexto("Descrição: ");
             DateTime data = LeituraConsole.LerData("Data (dd/MM/aaaa): ");
-            string justificativa = LeituraConsole.LerTexto(
-            "Por que você está realizando esta transação? ");
+            string? justificativa = tipo == TipoTransacao.Saida
+                ? LeituraConsole.LerTexto("Por que você está realizando esta saída? ") : null;
+            Transacao previa = new(conta.Id, tipo, valor, descricao, data, categoria.Id,
+                importancia, planejamento, urgencia, justificativa);
+            if (!ConfirmacaoConsole.Confirmar("Registrar transação",
+                ResumoOperacao.Transacao(previa, conta.Nome, categoria.Nome))) return;
 
             Transacao transacao = _servico.Registrar(
                 conta, tipo, valor, descricao, data, categoria.Id,importancia,planejamento,urgencia,justificativa);
@@ -448,6 +459,11 @@ namespace JKCASH.Menus
             Console.WriteLine($"Categoria: {categoria?.Nome ?? "Não encontrada"}");
             Console.WriteLine($"CategoriaId: {transacao.CategoriaId}");
             Console.WriteLine($"Descrição: {transacao.Descricao}");
+            if (transacao.Tipo == TipoTransacao.Entrada && transacao.TransferenciaId is null)
+            {
+                Console.WriteLine("Avaliação: Não se aplica.");
+                return;
+            }
             Console.WriteLine($"Importância: {transacao.Importancia}");
             Console.WriteLine(
                 $"Planejamento: {transacao.Planejamento?.ToString() ?? "Não informado"}");

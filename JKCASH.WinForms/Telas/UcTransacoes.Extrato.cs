@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Globalization;
+using JKCASH.Application.Modelos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
 using JKCASH.WinForms.Visual;
@@ -10,6 +11,10 @@ public partial class UcTransacoes
 {
     private bool _consultandoExtrato;
     private bool _contasExtratoCarregadas;
+    private FiltroExtrato? _filtroAplicado;
+    private int _paginaExtrato, _totalPaginasExtrato;
+    private Button _paginaAnterior = null!, _proximaPagina = null!;
+    private Label _situacaoPagina = null!;
     private static readonly CultureInfo CulturaExtrato = CultureInfo.GetCultureInfo("pt-BR");
 
     // O Designer guarda os controles; este arquivo concentra o comportamento do extrato.
@@ -19,6 +24,7 @@ public partial class UcTransacoes
         dtpDataFinalExtrato.Value = DateTime.Today;
         clbContasExtrato.DisplayMember = nameof(OpcaoContaExtrato.Nome);
         btnConsultarExtrato.Enabled = false;
+        ConfigurarPaginacao();
 
         // As colunas abaixo definem os dados visíveis; o objeto Transacao fica disponível para os detalhes.
         dgvExtrato.AutoGenerateColumns = false;
@@ -39,16 +45,20 @@ public partial class UcTransacoes
         dgvExtrato.GridColor = EstiloVisual.Borda;
         dgvExtrato.CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal;
         dgvExtrato.RowTemplate.Height = 34;
-        AdicionarColunaExtrato(nameof(LinhaExtrato.Data), "Data", 85, 85, "dd/MM/yyyy");
-        AdicionarColunaExtrato(nameof(LinhaExtrato.Conta), "Conta", 130, 110);
-        AdicionarColunaExtrato(nameof(LinhaExtrato.Descricao), "Descrição", 170, 140);
-        AdicionarColunaExtrato(nameof(LinhaExtrato.Categoria), "Categoria", 110, 100);
-        AdicionarColunaExtrato(nameof(LinhaExtrato.Movimento), "Tipo", 140, 115);
-        AdicionarColunaExtrato(nameof(LinhaExtrato.Valor), "Valor", 105, 100, "C2");
-        dgvExtrato.Columns[nameof(LinhaExtrato.Valor)]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+        AdicionarColunaExtrato(nameof(ExtratoItem.Data), "Data", 85, 85, "dd/MM/yyyy");
+        AdicionarColunaExtrato(nameof(ExtratoItem.Conta), "Conta", 130, 110);
+        AdicionarColunaExtrato(nameof(ExtratoItem.Descricao), "Descrição", 170, 140);
+        AdicionarColunaExtrato(nameof(ExtratoItem.Categoria), "Categoria", 110, 100);
+        AdicionarColunaExtrato(nameof(ExtratoItem.Movimento), "Tipo", 140, 115);
+        AdicionarColunaExtrato(nameof(ExtratoItem.Valor), "Valor", 105, 100, "C2");
+        dgvExtrato.Columns[nameof(ExtratoItem.Valor)]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
 
         chkTodasContasExtrato.CheckedChanged += (_, _) =>
             clbContasExtrato.Enabled = !chkTodasContasExtrato.Checked && !_consultandoExtrato;
+        chkTodasContasExtrato.CheckedChanged += (_, _) => InvalidarFiltroExtrato();
+        dtpDataInicialExtrato.ValueChanged += (_, _) => InvalidarFiltroExtrato();
+        dtpDataFinalExtrato.ValueChanged += (_, _) => InvalidarFiltroExtrato();
+        clbContasExtrato.ItemCheck += (_, _) => InvalidarFiltroExtrato();
         btnConsultarExtrato.Click += async (_, _) => await ConsultarExtratoAsync();
         btnDetalhesExtrato.Click += (_, _) => AbrirDetalhesExtrato();
         btnFecharDetalhesExtrato.Click += (_, _) => FecharDetalhesExtrato();
@@ -59,10 +69,10 @@ public partial class UcTransacoes
         };
         dgvExtrato.CellFormatting += (_, e) =>
         {
-            if (e.RowIndex < 0 || dgvExtrato.Rows[e.RowIndex].DataBoundItem is not LinhaExtrato linha) return;
-            if (dgvExtrato.Columns[e.ColumnIndex].Name is not (nameof(LinhaExtrato.Valor) or nameof(LinhaExtrato.Movimento))) return;
-            Color cor = linha.Transacao.TransferenciaId != null ? EstiloVisual.MenuSelecionado
-                : linha.Transacao.Tipo == TipoTransacao.Entrada ? EstiloVisual.Verde : EstiloVisual.Vermelho;
+            if (e.RowIndex < 0 || dgvExtrato.Rows[e.RowIndex].DataBoundItem is not ExtratoItem linha) return;
+            if (dgvExtrato.Columns[e.ColumnIndex].Name is not (nameof(ExtratoItem.Valor) or nameof(ExtratoItem.Movimento))) return;
+            Color cor = linha.Transferencia ? EstiloVisual.MenuSelecionado
+                : linha.Tipo == TipoTransacao.Entrada ? EstiloVisual.Verde : EstiloVisual.Vermelho;
             if (e.CellStyle is not null)
             {
                 e.CellStyle.ForeColor = cor;
@@ -77,6 +87,44 @@ public partial class UcTransacoes
         };
     }
 
+    private void ConfigurarPaginacao()
+    {
+        var barra = new FlowLayoutPanel
+        {
+            Dock = DockStyle.Bottom, Height = 42, WrapContents = false, AutoScroll = true
+        };
+        _paginaAnterior = EstiloVisual.Botao("Anterior");
+        _proximaPagina = EstiloVisual.Botao("Próxima");
+        _paginaAnterior.Name = "btnPaginaAnteriorExtrato";
+        _proximaPagina.Name = "btnProximaPaginaExtrato";
+        _paginaAnterior.Size = _proximaPagina.Size = new Size(100, 34);
+        _situacaoPagina = new Label
+        {
+            AutoSize = true, Margin = new Padding(12, 10, 12, 0),
+            Text = "Nenhuma consulta.", ForeColor = EstiloVisual.Secundario
+        };
+        barra.Controls.AddRange([_paginaAnterior, _proximaPagina, _situacaoPagina]);
+        pnlResultadoExtrato.Controls.Add(barra);
+        barra.SendToBack();
+        _paginaAnterior.Click += async (_, _) => await MudarPaginaExtratoAsync(-1);
+        _proximaPagina.Click += async (_, _) => await MudarPaginaExtratoAsync(1);
+        AtualizarPaginacao();
+    }
+
+    private void InvalidarFiltroExtrato()
+    {
+        if (_consultandoExtrato || IsDisposed || Disposing) return;
+        LimparResultadoExtrato();
+        MostrarStatusExtrato("Filtros alterados. Clique em Consultar extrato para aplicar.");
+    }
+
+    private Task MudarPaginaExtratoAsync(int direcao)
+    {
+        int pagina = _paginaExtrato + direcao;
+        return _filtroAplicado is not null && pagina >= 1 && pagina <= _totalPaginasExtrato
+            ? ConsultarPaginaExtratoAsync(_filtroAplicado, pagina) : Task.CompletedTask;
+    }
+
     private void AdicionarColunaExtrato(string propriedade, string titulo, float largura, int minimo, string formato = "")
     {
         dgvExtrato.Columns.Add(new DataGridViewTextBoxColumn
@@ -89,8 +137,9 @@ public partial class UcTransacoes
 
     private async Task CarregarContasDoExtratoAsync()
     {
-        if (_contas is null || IsDisposed) return;
+        if (_contas is null || _consultandoExtrato || IsDisposed || Disposing) return;
         DefinirConsultaEmAndamento(true);
+        LimparResultadoExtrato();
         try
         {
             // Inclui contas inativas: seu histórico continua disponível para consulta.
@@ -106,7 +155,13 @@ public partial class UcTransacoes
         }
         catch (Exception erro)
         {
-            if (!IsDisposed) MostrarErroExtrato(erro);
+            if (!IsDisposed)
+            {
+                _contasExtratoCarregadas = false;
+                clbContasExtrato.Items.Clear();
+                LimparResultadoExtrato();
+                MostrarErroExtrato(erro);
+            }
         }
         finally
         {
@@ -118,7 +173,8 @@ public partial class UcTransacoes
 
     private async Task ConsultarExtratoAsync()
     {
-        if (_contas is null || _categorias is null || _transacoes is null || _consultandoExtrato || IsDisposed) return;
+        if (_extrato is null ||
+            _consultandoExtrato || _registrando || IsDisposed || Disposing) return;
         LimparResultadoExtrato();
         try
         {
@@ -132,57 +188,54 @@ public partial class UcTransacoes
                 : clbContasExtrato.CheckedItems.Cast<OpcaoContaExtrato>().ToList();
             if (selecionadas.Count == 0)
                 throw new ArgumentException("Marque pelo menos uma conta ou selecione Todas as contas.");
-            List<Guid> ids = selecionadas.Select(conta => conta.Id).Distinct().ToList();
-            DefinirConsultaEmAndamento(true);
-            MostrarStatusExtrato("Consultando movimentações...");
-
-            // A consulta acontece fora da thread da interface, sem bloquear a navegação.
-            var linhas = await Task.Run(() =>
-            {
-                var contas = _contas.ListarTodas().ToDictionary(conta => conta.Id);
-                var categorias = _categorias.ListarTodas().ToDictionary(categoria => categoria.Id);
-                return _transacoes.ListarPorPeriodo(ids, inicio, fim)
-                    .OrderBy(transacao => transacao.Data).ThenBy(transacao => transacao.Id)
-                    .Select(transacao => new LinhaExtrato(transacao,
-                        contas.GetValueOrDefault(transacao.ContaId)?.Nome ?? "Conta não encontrada",
-                        contas.GetValueOrDefault(transacao.ContaId)?.Banco ?? "Banco não encontrado",
-                        categorias.GetValueOrDefault(transacao.CategoriaId)?.Nome ?? "Categoria não encontrada"))
-                    .ToList();
-            });
-            if (IsDisposed) return;
-
-            dgvExtrato.DataSource = linhas;
-            AtualizarTotaisExtrato(linhas);
-            MostrarStatusExtrato(linhas.Count == 0
-                ? $"Nenhuma movimentação entre {inicio:dd/MM/yyyy} e {fim:dd/MM/yyyy} nas contas selecionadas."
-                : $"{linhas.Count} movimentação(ões) | {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy} | {ids.Count} conta(s)");
-            AtualizarSelecaoExtrato();
+            Guid[] ids = selecionadas.Select(conta => conta.Id).Distinct().ToArray();
+            await ConsultarPaginaExtratoAsync(new FiltroExtrato(ids, inicio, fim), 1);
         }
         catch (Exception erro)
         {
             if (!IsDisposed) MostrarErroExtrato(erro);
         }
-        finally
-        {
-            if (!IsDisposed) DefinirConsultaEmAndamento(false);
-        }
     }
 
-    private void AtualizarTotaisExtrato(List<LinhaExtrato> linhas)
+    private async Task ConsultarPaginaExtratoAsync(FiltroExtrato filtro, int pagina)
     {
-        var comuns = linhas.Where(linha => linha.Transacao.TransferenciaId == null).ToList();
-        decimal entradas = comuns.Where(linha => linha.Transacao.Tipo == TipoTransacao.Entrada).Sum(linha => linha.Valor);
-        decimal saidas = comuns.Where(linha => linha.Transacao.Tipo == TipoTransacao.Saida).Sum(linha => linha.Valor);
-        decimal recebidas = linhas.Where(linha => linha.Transacao.TransferenciaId != null && linha.Transacao.Tipo == TipoTransacao.Entrada).Sum(linha => linha.Valor);
-        decimal enviadas = linhas.Where(linha => linha.Transacao.TransferenciaId != null && linha.Transacao.Tipo == TipoTransacao.Saida).Sum(linha => linha.Valor);
-        lblTotaisExtrato.Text = $"Entradas: {Moeda(entradas)}   |   Saídas: {Moeda(saidas)}   |   Resultado: {Moeda(entradas - saidas)}"
-            + Environment.NewLine + $"Transferências recebidas: {Moeda(recebidas)}   |   Enviadas: {Moeda(enviadas)}"
-            + Environment.NewLine + "Resultado = receitas − despesas do período; não representa o saldo da conta.";
+        if (_extrato is null || _consultandoExtrato || _registrando || IsDisposed || Disposing) return;
+        DefinirConsultaEmAndamento(true);
+        LimparResultadoExtrato();
+        MostrarStatusExtrato("Consultando movimentações e totais do período…");
+        try
+        {
+            ExtratoPagina resultado = await Task.Run(() =>
+                _extrato.Consultar(filtro.Contas, filtro.Inicio, filtro.Fim, pagina));
+            if (IsDisposed || Disposing) return;
+            _filtroAplicado = filtro;
+            _paginaExtrato = resultado.Pagina;
+            _totalPaginasExtrato = resultado.TotalPaginas;
+            dgvExtrato.DataSource = resultado.Itens.ToList();
+            ExtratoTotais totais = resultado.Totais;
+            lblTotaisExtrato.Text = $"Entradas: {Moeda(totais.Entradas)}   |   Saídas: {Moeda(totais.Saidas)}   |   Resultado: {Moeda(totais.Entradas - totais.Saidas)}"
+                + Environment.NewLine + $"Transferências recebidas: {Moeda(totais.TransferenciasRecebidas)}   |   Enviadas: {Moeda(totais.TransferenciasEnviadas)}"
+                + Environment.NewLine + "Totais de todo o período, incluindo todas as páginas; não representam o saldo da conta.";
+            _situacaoPagina.Text = resultado.QuantidadeTotal == 0 ? "Nenhuma movimentação."
+                : $"Página {resultado.Pagina} de {resultado.TotalPaginas} • {resultado.QuantidadeTotal} movimentações";
+            MostrarStatusExtrato($"{resultado.Itens.Count} exibida(s) | {filtro.Inicio:dd/MM/yyyy} a {filtro.Fim:dd/MM/yyyy} | {filtro.Contas.Length} conta(s)");
+            AtualizarSelecaoExtrato();
+        }
+        catch (Exception erro)
+        {
+            if (IsDisposed || Disposing) return;
+            LimparResultadoExtrato();
+            MostrarErroExtrato(erro);
+        }
+        finally
+        {
+            if (!IsDisposed && !Disposing) DefinirConsultaEmAndamento(false);
+        }
     }
 
     private void AbrirDetalhesExtrato()
     {
-        if (_consultandoExtrato || dgvExtrato.CurrentRow?.DataBoundItem is not LinhaExtrato) return;
+        if (_consultandoExtrato || dgvExtrato.CurrentRow?.DataBoundItem is not ExtratoItem) return;
         splExtrato.Panel2Collapsed = false;
         splExtrato.SplitterDistance = Math.Max(splExtrato.Panel1MinSize, splExtrato.Width - 320);
         btnFecharDetalhesExtrato.Visible = true;
@@ -198,43 +251,57 @@ public partial class UcTransacoes
 
     private void AtualizarSelecaoExtrato()
     {
-        btnDetalhesExtrato.Enabled = !_consultandoExtrato && dgvExtrato.CurrentRow?.DataBoundItem is LinhaExtrato;
+        btnDetalhesExtrato.Enabled = !_consultandoExtrato && dgvExtrato.CurrentRow?.DataBoundItem is ExtratoItem;
         if (splExtrato.Panel2Collapsed) return;
-        if (dgvExtrato.CurrentRow?.DataBoundItem is not LinhaExtrato linha)
+        if (dgvExtrato.CurrentRow?.DataBoundItem is not ExtratoItem linha)
         {
             txtDetalhesExtrato.Clear();
             return;
         }
-        Transacao transacao = linha.Transacao;
+        bool avaliar = linha.Tipo == TipoTransacao.Saida || linha.Transferencia;
         txtDetalhesExtrato.Text = string.Join(Environment.NewLine,
             $"Conta: {linha.Conta}", $"Banco: {linha.Banco}",
-            $"Data: {transacao.Data:dd/MM/yyyy HH:mm:ss}", $"Tipo: {linha.Movimento}",
-            $"Valor: {Moeda(transacao.Valor)}", $"Categoria: {linha.Categoria}",
-            $"Importância: {(transacao.Importancia == ImportanciaTransacao.Media ? "Média" : transacao.Importancia.ToString())}",
-            $"Planejamento: {(transacao.Planejamento == PlanejamentoTransacao.NaoPlanejada ? "Não planejada" : transacao.Planejamento?.ToString() ?? "Não informado")}",
-            $"Urgência: {(transacao.Urgencia == UrgenciaTransacao.SemUrgencia ? "Sem urgência" : transacao.Urgencia?.ToString() ?? "Não informada")}",
-            "", "Descrição:", transacao.Descricao, "", "Justificativa:", transacao.Justificativa);
+            $"Data: {linha.Data:dd/MM/yyyy HH:mm:ss}", $"Tipo: {linha.Movimento}",
+            $"Valor: {Moeda(linha.Valor)}", $"Categoria: {linha.Categoria}")
+            + Environment.NewLine + (avaliar ? string.Join(Environment.NewLine,
+            $"Importância: {(linha.Importancia == ImportanciaTransacao.Media ? "Média" : linha.Importancia?.ToString() ?? "Não informada")}",
+            $"Planejamento: {(linha.Planejamento == PlanejamentoTransacao.NaoPlanejada ? "Não planejada" : linha.Planejamento?.ToString() ?? "Não informado")}",
+            $"Urgência: {(linha.Urgencia == UrgenciaTransacao.SemUrgencia ? "Sem urgência" : linha.Urgencia?.ToString() ?? "Não informada")}",
+            "Justificativa:", linha.Justificativa) : "Avaliação: Não se aplica.")
+            + Environment.NewLine + "Descrição:" + Environment.NewLine + linha.Descricao;
         txtDetalhesExtrato.SelectionStart = 0;
         txtDetalhesExtrato.SelectionLength = 0;
     }
 
     private void LimparResultadoExtrato()
     {
+        _filtroAplicado = null;
+        _paginaExtrato = _totalPaginasExtrato = 0;
+        _situacaoPagina.Text = "Nenhuma consulta.";
         dgvExtrato.DataSource = null;
         lblTotaisExtrato.Text = "";
         FecharDetalhesExtrato();
         btnDetalhesExtrato.Enabled = false;
+        AtualizarPaginacao();
     }
 
     private void DefinirConsultaEmAndamento(bool consultando)
     {
         _consultandoExtrato = consultando;
-        btnConsultarExtrato.Enabled = !consultando && _contasExtratoCarregadas;
+        btnConsultarExtrato.Enabled = !consultando && !_registrando && _contasExtratoCarregadas;
         dtpDataInicialExtrato.Enabled = !consultando;
         dtpDataFinalExtrato.Enabled = !consultando;
         chkTodasContasExtrato.Enabled = !consultando;
         clbContasExtrato.Enabled = !consultando && !chkTodasContasExtrato.Checked;
         AtualizarSelecaoExtrato();
+        AtualizarEstadoRegistro();
+        AtualizarPaginacao();
+    }
+
+    private void AtualizarPaginacao()
+    {
+        _paginaAnterior.Enabled = !_consultandoExtrato && _filtroAplicado is not null && _paginaExtrato > 1;
+        _proximaPagina.Enabled = !_consultandoExtrato && _filtroAplicado is not null && _paginaExtrato < _totalPaginasExtrato;
     }
 
     private void MostrarStatusExtrato(string mensagem, bool erro = false)
@@ -252,11 +319,5 @@ public partial class UcTransacoes
 
     private static string Moeda(decimal valor) => valor.ToString("C2", CulturaExtrato);
     private sealed record OpcaoContaExtrato(Guid Id, string Nome);
-    private sealed record LinhaExtrato(Transacao Transacao, string Conta, string Banco, string Categoria)
-    {
-        public DateTime Data => Transacao.Data;
-        public string Descricao => Transacao.Descricao;
-        public string Movimento => (Transacao.TransferenciaId != null ? "Transferência — " : "") + Transacao.Tipo;
-        public decimal Valor => Transacao.Valor;
-    }
+    private sealed record FiltroExtrato(Guid[] Contas, DateTime Inicio, DateTime Fim);
 }

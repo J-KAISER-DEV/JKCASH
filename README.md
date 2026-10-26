@@ -16,6 +16,8 @@ O projeto de estudos `C#Aprendizado` tem uma solução própria em `C#Aprendizad
 
 ## Interface Windows Forms
 
+As consultas e gravações das telas executam em segundo plano, com bloqueio de cliques repetidos. Contas, Categorias, Transações e Cartões oferecem atualização dos dados após falhas. Quando um registro foi salvo e apenas a atualização da tela falha, a mensagem informa essa diferença. Ao sair de uma tela, uma gravação já iniciada pode concluir; consulte os dados ao retornar. Detalhes da entrega: [Etapa 5 — Responsividade](docs/etapa-5-responsividade.md).
+
 O carregamento dos indicadores é organizado por `IDashboardConsulta`/`DashboardConsulta` e devolve um `DashboardResumo`. As somas são feitas no banco, as faturas são filtradas por conjunto e apenas oito movimentações recentes são carregadas para a tabela. A tela cuida da apresentação. Veja [consulta do dashboard e limites da verificação](docs/dashboard-consulta.md).
 
 Defina **JKCASH.WinForms** como projeto de inicialização e execute com F5. Todas as telas usam o banco local SQLite em `%LocalAppData%\JKCASH\jkcash.db`, sem depender do serviço SQL Server. Na abertura, a aplicação cria a pasta de dados e aplica as migrações pendentes antes de mostrar a janela principal. Se a preparação falhar, informa o erro e não abre as telas com um banco incompleto. O arquivo fica fora da pasta do executável para preservar os dados nas atualizações.
@@ -36,11 +38,11 @@ Em **Contas > Transferir entre contas**, selecione duas contas ativas, informe v
 
 Em **Transações > Extrato**, escolha as datas inicial e final. O período padrão é do início do mês até hoje, incluindo os dois dias inteiros. **Todas as contas** inclui também contas inativas, preservando a consulta ao histórico. Para consultar uma ou várias contas, desmarque essa opção e marque as contas desejadas na lista. Use **Consultar extrato** para aplicar os filtros; retornar à aba também atualiza o resultado.
 
-A tabela mostra data, nome da conta, descrição, categoria, tipo e valor, sem identificadores técnicos. Os totais separam receitas e despesas das transferências internas. O resultado do período não é o saldo atual da conta.
+A tabela mostra data, nome da conta, descrição, categoria, tipo e valor, sem identificadores técnicos. Cada página contém até 50 movimentações; use Anterior e Próxima para navegar. Os totais abrangem todo o período e todas as páginas, separando receitas e despesas das transferências internas. O resultado do período não é o saldo atual da conta. Alterar datas ou contas limpa a consulta anterior; clique em Consultar extrato para aplicar os novos filtros.
 
 Selecione uma linha e clique em **Ver detalhes**, ou dê dois cliques na linha. Um painel na própria tela mostra conta, banco, data, tipo, valor, categoria, importância, planejamento, urgência, descrição e justificativa. Selecionar outra linha atualiza esse painel; **Fechar detalhes** amplia novamente a tabela. Nenhuma janela adicional é aberta.
 
-Datas invertidas, seleção vazia, ausência de movimentações e falhas de conexão são informadas na própria aba. As consultas executam em segundo plano para manter a navegação responsiva e não gravam no banco. `UcTransacoes.Designer.cs` guarda os controles; `UcTransacoes.Extrato.cs` concentra os eventos de filtro, consulta, totais e detalhes. Os construtores recebem a mesma instância de `ITransacaoRepositorio` usada pelo serviço de registro.
+Datas invertidas, seleção vazia, ausência de movimentações e falhas de conexão são informadas na própria aba. As consultas executam em segundo plano para manter a navegação responsiva e não gravam no banco. `UcTransacoes.Designer.cs` guarda a estrutura dos controles; `UcTransacoes.Extrato.cs` organiza filtros, paginação e detalhes. A leitura usa `IExtratoConsulta`, implementada por `ExtratoConsulta`, e recebe um `ExtratoPagina` com os registros e os totais já calculados. O serviço de registro continua usando `ITransacaoRepositorio`. Detalhes: [Extrato paginado](docs/extrato-paginado.md).
 
 `FrmPrincipal.Designer.cs` mantém a estrutura dos painéis da janela. `FrmPrincipal.Visual.cs` configura o menu e a navegação em execução; abra esse arquivo como código. `Telas/UcDashboard.cs` organiza o conteúdo com `TableLayoutPanel`, `Panel`, `Label`, `ComboBox`, `Button` e `DataGridView`. `Visual/EstiloVisual.cs` centraliza a paleta, botões, ícones e desenho das bordas, usando somente Windows Forms e System.Drawing. Para conferir o acabamento completo, execute o projeto; o designer da janela mantém apenas a estrutura básica.
 

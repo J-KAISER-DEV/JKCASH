@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Application.Modelos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -11,12 +11,12 @@ public sealed class ExclusaoServico(IExclusaoRepositorio repositorio)
     private readonly IExclusaoRepositorio _repositorio = repositorio
         ?? throw new ArgumentNullException(nameof(repositorio));
 
-    public List<ItemExclusao> Listar(TipoRegistro tipo) => Itens(_repositorio.Carregar(), tipo);
+    public List<ItemExclusao> Listar(TipoRegistro tipo) => _repositorio.Listar(tipo);
 
     public PreviaExclusao Preparar(TipoRegistro tipo, Guid id)
     {
-        EstadoFinanceiro original = _repositorio.Carregar();
-        string descricao = Itens(original, tipo).SingleOrDefault(i => i.Id == id)?.Descricao
+        EstadoFinanceiro original = _repositorio.Carregar(tipo, id);
+        string descricao = CatalogoExclusao.Listar(original, tipo).SingleOrDefault(i => i.Id == id)?.Descricao
             ?? throw new InvalidOperationException("Registro não encontrado.");
         EstadoFinanceiro atualizado = Remover(original, tipo, id);
         List<string> linhas = new();
@@ -52,39 +52,15 @@ public sealed class ExclusaoServico(IExclusaoRepositorio repositorio)
     public void Excluir(PreviaExclusao previa)
     {
         ArgumentNullException.ThrowIfNull(previa);
-        EstadoFinanceiro original = _repositorio.Carregar();
+        EstadoFinanceiro original = _repositorio.Carregar(previa.Tipo, previa.Id);
         if (original.Assinatura() != previa.Versao)
             throw new InvalidOperationException("Os dados foram alterados. Consulte a prévia novamente.");
-        _repositorio.Salvar(Remover(original, previa.Tipo, previa.Id), previa.Versao);
-    }
-
-    private static List<ItemExclusao> Itens(EstadoFinanceiro e, TipoRegistro tipo)
-    {
-        string ContaNome(Guid id) => e.Contas.SingleOrDefault(c => c.Id == id)?.Nome ?? "Conta ausente";
-        string CartaoNome(Guid id) => e.Cartoes.SingleOrDefault(c => c.Id == id)?.Nome ?? "Cartão ausente";
-        IEnumerable<ItemExclusao> itens = tipo switch
-        {
-            TipoRegistro.Conta => e.Contas.Select(c => new ItemExclusao(c.Id, $"{c.Nome} | {c.Banco} | {c.Saldo.SaldoAtual:C2}")),
-            TipoRegistro.Categoria => e.Categorias.Select(c => new ItemExclusao(c.Id, c.Nome)),
-            TipoRegistro.Transacao => e.Transacoes.Select(t => new ItemExclusao(t.Id, $"{t.Data:dd/MM/yyyy} | {ContaNome(t.ContaId)} | {t.Tipo} | {t.Valor:C2} | {t.Descricao}")),
-            TipoRegistro.Transferencia => e.Transacoes.Where(t => t.TransferenciaId.HasValue)
-                .GroupBy(t => t.TransferenciaId!.Value).Select(g => new ItemExclusao(g.Key,
-                    $"{g.First().Data:dd/MM/yyyy} | {string.Join(" ↔ ", g.Select(t => ContaNome(t.ContaId)))} | {g.First().Valor:C2}")),
-            TipoRegistro.Cartao => e.Cartoes.Select(c => new ItemExclusao(c.Id, $"{c.Nome} | utilizado {c.ValorUtilizado:C2}")),
-            TipoRegistro.Compra => e.Compras.Select(c => new ItemExclusao(c.Id, $"{CartaoNome(c.CartaoId)} | {c.Data:dd/MM/yyyy} | {c.Descricao} | {c.Valor:C2}")),
-            TipoRegistro.Fatura => e.Faturas.Select(f => new ItemExclusao(f.Id, $"{CartaoNome(f.CartaoId)} | vencimento {f.Ciclo.Vencimento:dd/MM/yyyy} | {f.Total:C2}")),
-            TipoRegistro.Pagamento => e.Faturas.SelectMany(f => f.Pagamentos.Select(p => new ItemExclusao(p.Id,
-                $"{CartaoNome(f.CartaoId)} | {p.Data:dd/MM/yyyy} | {ContaNome(p.ContaId)} | {p.Valor:C2}"))),
-            TipoRegistro.Parcela => e.Compras.SelectMany(c => c.Parcelas.Select(p => new ItemExclusao(p.Id,
-                $"{CartaoNome(c.CartaoId)} | {c.Descricao} | parcela {p.Numero}/{p.Quantidade} | {p.Valor:C2}"))),
-            _ => throw new ArgumentException("Tipo de registro inválido.", nameof(tipo))
-        };
-        return itens.OrderBy(i => i.Descricao).ToList();
+        _repositorio.Salvar(Remover(original, previa.Tipo, previa.Id), previa);
     }
 
     private static EstadoFinanceiro Remover(EstadoFinanceiro e, TipoRegistro tipo, Guid id)
     {
-        if (!Itens(e, tipo).Any(i => i.Id == id)) throw new InvalidOperationException("Registro não encontrado.");
+        if (!CatalogoExclusao.Listar(e, tipo).Any(i => i.Id == id)) throw new InvalidOperationException("Registro não encontrado.");
         HashSet<Guid> contas = new(), categorias = new(), transacoes = new(), cartoes = new(),
             compras = new(), faturas = new(), pagamentos = new();
         var todosPagamentos = e.Faturas.SelectMany(f => f.Pagamentos).ToList();

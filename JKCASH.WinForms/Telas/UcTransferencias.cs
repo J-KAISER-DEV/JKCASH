@@ -1,3 +1,4 @@
+using JKCASH.Application.Modelos;
 using System.Diagnostics;
 using JKCASH.Application.Interfaces;
 using JKCASH.Application.Excecoes;
@@ -10,6 +11,7 @@ namespace JKCASH.WinForms.Telas;
 
 public partial class UcTransferencias : UserControl
 {
+    private readonly IConfirmacaoOperacao _confirmacao = ConfirmacaoOperacao.Padrao;
     public event EventHandler? TransferenciaRealizada;
     private readonly IContaRepositorio? _contas;
     private readonly ICategoriaRepositorio? _categorias;
@@ -43,7 +45,7 @@ public partial class UcTransferencias : UserControl
         numValorTransferencia.ValueChanged += (_, _) => AtualizarSaldos();
     }
 
-    public UcTransferencias(IContaRepositorio contas, ICategoriaRepositorio categorias, TransferenciaServico servico) : this()
+    public UcTransferencias(IContaRepositorio contas, ICategoriaRepositorio categorias, TransferenciaServico servico, IConfirmacaoOperacao? confirmacao = null) : this()
     {
         ArgumentNullException.ThrowIfNull(contas);
         ArgumentNullException.ThrowIfNull(categorias);
@@ -51,6 +53,7 @@ public partial class UcTransferencias : UserControl
         _contas = contas;
         _categorias = categorias;
         _servico = servico;
+        _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
         Load += async (_, _) => await AtualizarDadosAsync();
         btnAtualizarTransferencia.Click += async (_, _) => await AtualizarDadosAsync();
         btnConfirmarTransferencia.Click += async (_, _) => await ConfirmarTransferenciaAsync();
@@ -58,7 +61,7 @@ public partial class UcTransferencias : UserControl
 
     public async Task AtualizarDadosAsync()
     {
-        if (_ocupado || _contas is null || _categorias is null) return;
+        if (_ocupado || _contas is null || _categorias is null || IsDisposed || Disposing) return;
         Ocupar(true);
         txtResultadoTransferencia.Text = "Consultando contas e categorias…";
         try
@@ -136,7 +139,7 @@ public partial class UcTransferencias : UserControl
 
     private async Task ConfirmarTransferenciaAsync()
     {
-        if (_ocupado || _servico is null) return;
+        if (_ocupado || _servico is null || IsDisposed || Disposing) return;
         Transferencia? salva = null;
         try
         {
@@ -153,6 +156,12 @@ public partial class UcTransferencias : UserControl
             decimal valor = numValorTransferencia.Value;
             string descricao = txtDescricaoTransferencia.Text, justificativa = txtJustificativaTransferencia.Text;
             Ocupar(true);
+            Transferencia previa = new(origemId, destinoId, valor, descricao, DateTime.Now, categoriaId, importancia, planejamento, urgencia, justificativa);
+            OpcaoConta origemPrevia = _contasAtivas.Single(c => c.Id == origemId);
+            OpcaoConta destinoPrevia = _contasAtivas.Single(c => c.Id == destinoId);
+            if (valor > origemPrevia.Disponivel) throw new ArgumentException("Saldo e cheque especial insuficientes.");
+            if (!_confirmacao.Confirmar(this, "Registrar transferência", ResumoOperacao.Transferencia(previa, origemPrevia.Nome, destinoPrevia.Nome) + "\nCategoria: " + cmbCategoriaTransferencia.Text))
+            { txtResultadoTransferencia.Text = "Transferência cancelada. Preenchimento preservado."; return; }
             txtResultadoTransferencia.Text = "Registrando transferência…";
             // O serviço lê as contas novamente e confirma a disponibilidade atual no repositório.
             salva = await Task.Run(() => _servico.Registrar(origemId, destinoId, valor, categoriaId,
@@ -198,7 +207,7 @@ public partial class UcTransferencias : UserControl
                 InvalidarConsulta();
                 txtResultadoTransferencia.Text = "A transferência foi salva, mas a consulta dos saldos falhou. Atualize as contas ou consulte o extrato para conferir.";
             }
-            else if (erro is ArgumentException or InvalidOperationException)
+            else if (FalhaTela.EhValidacao(erro))
                 txtResultadoTransferencia.Text = erro.Message;
             else
             {
@@ -228,6 +237,7 @@ public partial class UcTransferencias : UserControl
     {
         _ocupado = ocupado;
         if (IsDisposed) return;
+        UseWaitCursor = ocupado;
         tlpTransferencia.Enabled = !ocupado;
         txtDescricaoTransferencia.Enabled = !ocupado;
         txtJustificativaTransferencia.Enabled = !ocupado;

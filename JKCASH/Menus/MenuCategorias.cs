@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 
 namespace JKCASH.Menus
@@ -24,6 +25,7 @@ namespace JKCASH.Menus
         {
             string nome = LeituraConsole.LerTexto("Nome da categoria: ");
             Categoria categoria = new(nome);
+            if (!ConfirmacaoConsole.Confirmar("Cadastrar categoria", ResumoOperacao.Categoria(categoria))) return;
             _repositorio.Adicionar(categoria);
 
             Console.WriteLine($"Categoria cadastrada: {categoria.Nome}");

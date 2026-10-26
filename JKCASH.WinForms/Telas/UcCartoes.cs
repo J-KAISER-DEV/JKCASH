@@ -1,80 +1,56 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
+using JKCASH.WinForms.Visual;
+using JKCASH.Application.Modelos;
+using System.Diagnostics;
 using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
-namespace JKCASH.WinForms.Telas
+
+namespace JKCASH.WinForms.Telas;
+
+public partial class UcCartoes : UserControl
 {
-    public partial class UcCartoes : UserControl
+    private readonly IConfirmacaoOperacao _confirmacao = ConfirmacaoOperacao.Padrao;
+    private readonly ICartaoCreditoRepositorio? _cartoes;
+    private readonly IContaRepositorio? _contas;
+    private bool _consultaCartoesValida;
+
+    public UcCartoes()
     {
-        private readonly ICartaoCreditoRepositorio? _cartoes;
-        private readonly IContaRepositorio? _contas;
-        public UcCartoes()
+        InitializeComponent();
+        ConfigurarTabelaCartoes();
+        ConfigurarCompras();
+        OcupacaoCompra(false);
+    }
+
+    public UcCartoes(ICartaoCreditoRepositorio cartoes, IContaRepositorio contas, IConfirmacaoOperacao? confirmacao = null) : this()
+    {
+        ArgumentNullException.ThrowIfNull(cartoes);
+        ArgumentNullException.ThrowIfNull(contas);
+        _cartoes = cartoes;
+        _contas = contas;
+        _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
+        Load += async (_, _) => await CarregarDadosComprasAsync();
+        btnAtualizarCartoes.Click += async (_, _) => await CarregarDadosComprasAsync();
+        btnSalvarCartao.Click += async (_, _) => await SalvarCartaoAsync();
+    }
+
+    private void PreencherCadastroCartoes(List<CartaoCredito> cartoes, List<Conta> contas)
+    {
+        Guid? anterior = cmbContaCartao.SelectedValue as Guid?;
+        var ativas = contas.Where(c => c.Ativa)
+            .Select(c => new { c.Id, Nome = $"{c.Nome} ({c.Banco})" }).ToList();
+        cmbContaCartao.DisplayMember = nameof(Conta.Nome);
+        cmbContaCartao.ValueMember = nameof(Conta.Id);
+        cmbContaCartao.DataSource = ativas;
+        if (anterior.HasValue && ativas.Any(c => c.Id == anterior)) cmbContaCartao.SelectedValue = anterior.Value;
+        var nomes = contas.ToDictionary(c => c.Id);
+        dgvCartoes.DataSource = cartoes.Select(c => new
         {
-            InitializeComponent();
-            ConfigurarTabelaCartoes();
-            ConfigurarCompras();
+            c.Nome,
+            Conta = nomes.TryGetValue(c.ContaId, out Conta? conta) ? $"{conta.Nome} ({conta.Banco})" : "Conta não encontrada",
+            c.Limite, c.ValorUtilizado, c.LimiteDisponivel, c.DiaFechamento, c.DiaVencimento
+        }).ToList();
+    }
 
-        }
-
-        public UcCartoes(
-            ICartaoCreditoRepositorio cartoes,
-            IContaRepositorio contas
-            ) : this()
-        {
-            ArgumentNullException.ThrowIfNull(cartoes);
-            ArgumentNullException.ThrowIfNull(contas);
-
-            _cartoes = cartoes;
-            _contas = contas;
-            Load += (_, _) =>
-            {
-                CarregarContas();
-                CarregarCartoes();
-            };
-            btnSalvarCartao.Click += async (_, _) => await SalvarCartaoAsync();
-        }
-
-        private void CarregarContas()
-        {
-            if (_contas is null)
-                return;
-
-            btnSalvarCartao.Enabled = false;
-
-            try
-            {
-                var contas = _contas.ListarTodas()
-                    .Where(conta => conta.Ativa)
-                    .Select(conta => new
-                    {
-                        conta.Id,
-                        Nome = $"{conta.Nome} ({conta.Banco})"
-                    })
-                    .ToList();
-
-                cmbContaCartao.DisplayMember = nameof(Conta.Nome);
-                cmbContaCartao.ValueMember = nameof(Conta.Id);
-                cmbContaCartao.DataSource = contas;
-
-                btnSalvarCartao.Enabled = contas.Count > 0;
-
-                if (contas.Count == 0)
-                {
-                    txtResultadoCompra.Text = "Cadastre uma conta ativa para vincular o cartão.";
-                }
-            }
-            catch (Exception erro)
-            {
-                System.Diagnostics.Debug.WriteLine(erro);
-                cmbContaCartao.DataSource = null;
-                txtResultadoCompra.Text = "Não foi possível carregar as contas. Confira a conexão e atualize os dados.";
-            }
-        }
         private void ConfigurarTabelaCartoes()
         {
             dgvCartoes.AutoGenerateColumns = false;
@@ -117,106 +93,51 @@ namespace JKCASH.WinForms.Telas
                 .DefaultCellStyle.Format = "C2";
         }
 
-        private void CarregarCartoes()
+    private async Task SalvarCartaoAsync()
+    {
+        if (_operacaoCompra || !_consultaCartoesValida || _cartoes is null || _contas is null ||
+            IsDisposed || Disposing) return;
+        bool gravando = false, salvo = false;
+        OcupacaoCompra(true);
+        txtResultadoCompra.Text = "Cadastrando cartão…";
+        try
         {
-            if (_cartoes is null || _contas is null)
-                return;
-
-            try
+            if (cmbContaCartao.SelectedValue is not Guid contaId)
+                throw new ArgumentException("Selecione a conta vinculada ao cartão.");
+            CartaoCredito cartao = new(contaId, txtNomeCartao.Text, numLimiteCartao.Value,
+                (int)numDiaFechamentoCartao.Value, (int)numDiaVencimentoCartao.Value,
+                chkCompraNaProximaFatura.Checked);
+            // Captura todos os controles antes de consultar/gravar fora da thread visual.
+            bool ativa = await Task.Run(() => _contas.ListarTodas().Any(c => c.Id == contaId && c.Ativa));
+            if (IsDisposed || Disposing) return;
+            if (!ativa) throw new ArgumentException("A conta selecionada não existe ou está inativa. Atualize os dados.");
+            if (!_confirmacao.Confirmar(this, "Cadastrar cartão", ResumoOperacao.Cartao(cartao, cmbContaCartao.Text)))
+            { txtResultadoCompra.Text = "Cadastro cancelado. Preenchimento preservado."; return; }
+            gravando = true;
+            await Task.Run(() => _cartoes.Adicionar(cartao));
+            salvo = true;
+            if (IsDisposed || Disposing) return;
+            txtNomeCartao.Clear();
+            numLimiteCartao.Value = 0m;
+            await RecarregarComprasCoreAsync(cartao.Id);
+            if (IsDisposed || Disposing) return;
+            txtResultadoCompra.Text = "Cartão cadastrado. Limites e opções atualizados.";
+            txtNomeCartao.Focus();
+        }
+        catch (Exception erro)
+        {
+            Debug.WriteLine(erro);
+            if (IsDisposed || Disposing) return;
+            if (!gravando && erro is ArgumentException)
+                txtResultadoCompra.Text = erro.Message;
+            else
             {
-                var contas = _contas.ListarTodas()
-                    .ToDictionary(conta => conta.Id);
-
-                var cartoes = _cartoes.ListarTodos()
-                    .Select(cartao => new
-                    {
-                        cartao.Nome,
-
-                        Conta = contas.TryGetValue(
-                            cartao.ContaId, out Conta? conta)
-                            ? $"{conta.Nome} ({conta.Banco})"
-                            : "Conta não encontrada",
-
-                        cartao.Limite,
-                        cartao.ValorUtilizado,
-                        cartao.LimiteDisponivel,
-                        cartao.DiaFechamento,
-                        cartao.DiaVencimento
-                    })
-                    .ToList();
-
-                dgvCartoes.DataSource = cartoes;
-            }
-            catch (Exception erro)
-            {
-                System.Diagnostics.Debug.WriteLine(erro);
-                dgvCartoes.DataSource = null;
-                txtResultadoCompra.Text = "Não foi possível carregar os cartões. Confira a conexão e atualize os dados.";
+                InvalidarDadosCartoes();
+                txtResultadoCompra.Text = salvo
+                    ? "O cartão foi salvo, mas a consulta não pôde ser atualizada. Use Atualizar dados para conferir."
+                    : "Não foi possível confirmar o cadastro. Atualize e confira os cartões antes de tentar novamente.";
             }
         }
-
-        private async Task SalvarCartaoAsync()
-        {
-            if (_operacaoCompra || _cartoes is null || _contas is null)
-                return;
-
-            try
-            {
-                if (cmbContaCartao.SelectedValue is not Guid contaId)
-                {
-                    throw new ArgumentException(
-                        "Selecione a conta vinculada ao cartão.");
-                }
-
-                bool contaValida = _contas.ListarTodas()
-                    .Any(conta => conta.Id == contaId && conta.Ativa);
-
-                if (!contaValida)
-                {
-                    throw new ArgumentException(
-                        "A conta selecionada não existe ou está inativa.");
-                }
-
-                CartaoCredito cartao = new(
-                    contaId,
-                    txtNomeCartao.Text,
-                    numLimiteCartao.Value,
-                    (int)numDiaFechamentoCartao.Value,
-                    (int)numDiaVencimentoCartao.Value,
-                    chkCompraNaProximaFatura.Checked);
-
-                _cartoes.Adicionar(cartao);
-
-                txtNomeCartao.Clear();
-                numLimiteCartao.Value = 0m;
-
-                MessageBox.Show(
-                    "Cartão cadastrado com sucesso!",
-                    "JKCASH",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-
-                CarregarCartoes();
-                await CarregarDadosComprasAsync(cartao.Id);
-                txtNomeCartao.Focus();
-            }
-            catch (ArgumentException erro)
-            {
-                MessageBox.Show(
-                    erro.Message,
-                    "Confira os dados do cartão",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }
-            catch (Exception erro)
-            {
-                MessageBox.Show(
-                    $"Não foi possível cadastrar o cartão.\n{erro.Message}",
-                    "JKCASH",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error);
-            }
-        }
-
+        finally { OcupacaoCompra(false); }
     }
 }

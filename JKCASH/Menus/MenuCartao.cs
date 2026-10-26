@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using System;
 using System.Collections.Generic;
@@ -62,6 +63,8 @@ namespace JKCASH.Menus
                 diaVencimento,
                 proximaFatura);
 
+            if (!conta.Ativa) throw new ArgumentException("Selecione uma conta ativa.");
+            if (!ConfirmacaoConsole.Confirmar("Cadastrar cartão", ResumoOperacao.Cartao(cartao, conta.Nome))) return;
             _repositorio.Adicionar(cartao);
 
             Console.WriteLine($"Cartão cadastrado: Id:{cartao.Id} | Conta: {conta.Nome} | Banco: {conta.Banco}");

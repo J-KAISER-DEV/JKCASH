@@ -36,7 +36,7 @@ public static class FabricaTelas
         ITransacaoRepositorio transacoes = new TransacaoRepositorioEf(ConexaoLocal.CriarContexto);
         TransacaoServico servico = new(transacoes, categorias);
 
-        return new UcTransacoes(contas, categorias, servico, transacoes);
+        return new UcTransacoes(contas, categorias, servico, new ExtratoConsulta(ConexaoLocal.CriarContexto));
     }
 
     public static UcCartoes CriarCartoes()

@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Enums;
@@ -64,6 +65,8 @@ namespace JKCASH.Menus
             string descricao = LeituraConsole.LerTexto("Descrição: ");
             string justificativa = LeituraConsole.LerTexto("Justificativa: ");
 
+            Transferencia previa = new(origem.Id, destino.Id, valor, descricao, DateTime.Now, categoria.Id, importancia, planejamento, urgencia, justificativa);
+            if (!ConfirmacaoConsole.Confirmar("Registrar transferência", ResumoOperacao.Transferencia(previa, origem.Nome, destino.Nome) + "\nCategoria: " + categoria.Nome)) return;
             Transferencia transferencia = _transferencias.Registrar(origem.Id, destino.Id, valor,
                 categoria.Id, importancia, planejamento, urgencia, descricao, justificativa);
 
@@ -112,6 +115,7 @@ namespace JKCASH.Menus
             decimal limite = LeituraConsole.LerDecimal("Limite do cheque especial (0 se não houver): ");
 
             Conta conta = new(nome, banco, tipo, destinacao, saldo, limite);
+            if (!ConfirmacaoConsole.Confirmar("Cadastrar conta", ResumoOperacao.Conta(conta))) return;
             _repositorio.Adicionar(conta);
 
             Console.WriteLine($"Conta cadastrada! Id: {conta.Id}");

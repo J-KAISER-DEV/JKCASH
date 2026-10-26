@@ -30,13 +30,18 @@ namespace JKCASH.Infrastructure.Repositorios
             }
 
             using JKCASHDbContext contexto = _criarContexto();
-
-            return contexto.Transacoes
+            DateTime inicio = dataInicial.Date;
+            var consulta = contexto.Transacoes
                 .AsNoTracking()
                 .Where(transacao =>
                     contaIds.Contains(transacao.ContaId) &&
-                    transacao.Data.Date >= dataInicial.Date &&
-                    transacao.Data.Date <= dataFinal.Date)
+                    transacao.Data >= inicio);
+            if (dataFinal.Date < DateTime.MaxValue.Date)
+            {
+                DateTime fimExclusivo = dataFinal.Date.AddDays(1);
+                consulta = consulta.Where(transacao => transacao.Data < fimExclusivo);
+            }
+            return consulta
                 .OrderBy(transacao => transacao.Data)
                 .ThenBy(transacao => transacao.Id)
                 .ToList();

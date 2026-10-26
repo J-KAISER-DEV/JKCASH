@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -51,6 +52,10 @@ public sealed class MenuComprasCartao
         UrgenciaTransacao urgencia = LeituraConsole.LerOpcao<UrgenciaTransacao>();
         string justificativa = LeituraConsole.LerTexto("Justificativa: ");
 
+        CompraCartao previa = new(cartao, valor, descricao, data, categoria.Id, importancia, planejamento, urgencia, justificativa, quantidade);
+        if (valor > cartao.LimiteDisponivel || data > DateTime.Today || previa.Parcelas[0].Ciclo.Encerramento <= DateTime.Today)
+            throw new ArgumentException("Confira a data e o limite disponível para a compra.");
+        if (!ConfirmacaoConsole.Confirmar("Registrar compra", ResumoOperacao.Compra(previa, cartao.Nome, categoria.Nome))) return;
         CompraCartao compra = _servico.Registrar(cartao.Id, valor, descricao, data, categoria.Id,
             importancia, planejamento, urgencia, justificativa, quantidade);
         Console.WriteLine("Compra registrada! O valor total comprometeu o limite do cartão.");

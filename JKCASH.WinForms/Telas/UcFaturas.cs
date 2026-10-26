@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using JKCASH.Application.Modelos;
+using System.Diagnostics;
 using JKCASH.Application.Interfaces;
 using JKCASH.Application.Excecoes;
 using JKCASH.Application.Servicos;
@@ -10,6 +11,7 @@ namespace JKCASH.WinForms.Telas;
 
 public partial class UcFaturas : UserControl
 {
+    private readonly IConfirmacaoOperacao _confirmacao = ConfirmacaoOperacao.Padrao;
     private readonly ICartaoCreditoRepositorio? _cartoes;
     private readonly IFaturaCartaoRepositorio? _faturas;
     private readonly ICompraCartaoRepositorio? _compras;
@@ -41,7 +43,7 @@ public partial class UcFaturas : UserControl
 
     public UcFaturas(ICartaoCreditoRepositorio cartoes, IFaturaCartaoRepositorio faturas,
         ICompraCartaoRepositorio compras, IContaRepositorio contas, ICategoriaRepositorio categorias,
-        PagamentoFaturaServico pagamentos) : this()
+        PagamentoFaturaServico pagamentos, IConfirmacaoOperacao? confirmacao = null) : this()
     {
         ArgumentNullException.ThrowIfNull(cartoes);
         ArgumentNullException.ThrowIfNull(faturas);
@@ -55,6 +57,7 @@ public partial class UcFaturas : UserControl
         _contas = contas;
         _categorias = categorias;
         _pagamentos = pagamentos;
+        _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
         Load += async (_, _) => await AtualizarFaturasAsync();
         btnAtualizarFaturas.Click += async (_, _) => await AtualizarFaturasAsync();
         cmbCartaoFaturas.SelectedValueChanged += async (_, _) =>
@@ -68,7 +71,7 @@ public partial class UcFaturas : UserControl
 
     private async Task AtualizarFaturasAsync()
     {
-        if (_ocupado || _cartoes is null) return;
+        if (_ocupado || _cartoes is null || IsDisposed || Disposing) return;
         Ocupar(true);
         lblStatusFaturas.Text = "Consultando faturas…";
         try
@@ -85,12 +88,7 @@ public partial class UcFaturas : UserControl
         {
             Debug.WriteLine(erro);
             if (IsDisposed) return;
-            _dados = null;
-            dgvFaturas.DataSource = null;
-            dgvParcelasFatura.DataSource = null;
-            dgvPagamentosFatura.DataSource = null;
-            lblResumoFatura.Text = "Consulta indisponível.";
-            lblLimiteFatura.Text = "Não foi possível consultar os limites.";
+            InvalidarConsulta();
             lblStatusFaturas.Text = "Não foi possível carregar os dados. Confira a conexão e clique em Atualizar dados.";
         }
         finally { Ocupar(false); }
@@ -185,7 +183,7 @@ public partial class UcFaturas : UserControl
 
     private async Task PagarFaturaAsync()
     {
-        if (_ocupado || _pagamentos is null) return;
+        if (_ocupado || _dados is null || _pagamentos is null || IsDisposed || Disposing) return;
         PagamentoFatura? salvo = null;
         Guid? faturaTentativa = null;
         try
@@ -196,6 +194,14 @@ public partial class UcFaturas : UserControl
                 throw new ArgumentException("Selecione a conta e a categoria do pagamento.");
             decimal valor = numValorPagamento.Value;
             Ocupar(true);
+            Conta conta = _dados.Contas.Single(c => c.Id == contaId);
+            CartaoCredito cartao = _dados.Cartoes.Single(c => c.Id == fatura.CartaoId);
+            _ = new PagamentoFatura(fatura.Id, contaId, Guid.NewGuid(), valor, DateTime.Today);
+            if (valor > fatura.SaldoPendente || valor > cartao.ValorUtilizado)
+                throw new ArgumentException("O pagamento ultrapassa o valor pendente ou utilizado.");
+            conta.ValidarSaida(valor);
+            if (!_confirmacao.Confirmar(this, "Registrar pagamento", ResumoOperacao.Pagamento(fatura, conta, cartao, valor) + "\nCategoria: " + cmbCategoriaPagamento.Text))
+            { lblStatusFaturas.Text = "Pagamento cancelado. Preenchimento preservado."; return; }
             lblStatusFaturas.Text = "Registrando pagamento…";
             salvo = await Task.Run(() => _pagamentos.Registrar(fatura.Id, contaId, valor, categoriaId));
             if (IsDisposed) return;
@@ -217,12 +223,7 @@ public partial class UcFaturas : UserControl
             {
                 Debug.WriteLine(falhaConsulta);
                 if (IsDisposed) return;
-                _dados = null;
-                dgvFaturas.DataSource = null;
-                dgvParcelasFatura.DataSource = null;
-                dgvPagamentosFatura.DataSource = null;
-                lblResumoFatura.Text = "Consulta indisponível.";
-                lblLimiteFatura.Text = "Atualize os dados para consultar o limite.";
+                InvalidarConsulta();
                 lblStatusFaturas.Text = "O pagamento não foi confirmado. Use Atualizar dados antes de tentar novamente.";
             }
         }
@@ -230,9 +231,11 @@ public partial class UcFaturas : UserControl
         {
             Debug.WriteLine(erro);
             if (IsDisposed) return;
+            if (salvo is not null || !FalhaTela.EhValidacao(erro))
+                InvalidarConsulta();
             lblStatusFaturas.Text = salvo is not null
                 ? "O pagamento foi salvo, mas a consulta não pôde ser atualizada. Clique em Atualizar dados para conferir."
-                : erro is ArgumentException or InvalidOperationException ? erro.Message
+                : FalhaTela.EhValidacao(erro) ? erro.Message
                 : "Não foi possível concluir o pagamento. Confira a conexão e consulte o histórico antes de tentar novamente.";
         }
         finally { Ocupar(false); }
@@ -242,10 +245,23 @@ public partial class UcFaturas : UserControl
     {
         _ocupado = ocupado;
         if (IsDisposed) return;
+        UseWaitCursor = ocupado;
         pnlFiltrosFaturas.Enabled = !ocupado;
         dgvFaturas.Enabled = !ocupado;
         pnlPagamentoFatura.Enabled = !ocupado;
         AtualizarPagamento();
+    }
+
+    private void InvalidarConsulta()
+    {
+        _dados = null;
+        dgvFaturas.DataSource = null;
+        dgvParcelasFatura.DataSource = null;
+        dgvPagamentosFatura.DataSource = null;
+        cmbContaPagamento.DataSource = null;
+        cmbCategoriaPagamento.DataSource = null;
+        lblResumoFatura.Text = "Consulta indisponível. Atualize os dados para conferir.";
+        lblLimiteFatura.Text = "Limites indisponíveis.";
     }
 
     private void AtualizarPagamento()

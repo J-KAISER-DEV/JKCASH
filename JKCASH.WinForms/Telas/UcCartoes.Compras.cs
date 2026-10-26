@@ -1,5 +1,7 @@
-﻿using System.Diagnostics;
+using JKCASH.Application.Modelos;
+using System.Diagnostics;
 using JKCASH.Application.Interfaces;
+using JKCASH.Application.Excecoes;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -16,8 +18,9 @@ public partial class UcCartoes
     private bool _preenchendoCompras;
 
     public UcCartoes(ICartaoCreditoRepositorio cartoes, IContaRepositorio contas,
-        ICategoriaRepositorio categorias, ICompraCartaoRepositorio compras, CompraCartaoServico servico)
-        : this(cartoes, contas)
+        ICategoriaRepositorio categorias, ICompraCartaoRepositorio compras, CompraCartaoServico servico,
+        IConfirmacaoOperacao? confirmacao = null)
+        : this(cartoes, contas, confirmacao)
     {
         ArgumentNullException.ThrowIfNull(categorias);
         ArgumentNullException.ThrowIfNull(compras);
@@ -25,13 +28,6 @@ public partial class UcCartoes
         _categorias = categorias;
         _compras = compras;
         _servicoCompras = servico;
-        Load += async (_, _) => await CarregarDadosComprasAsync();
-        btnAtualizarCartoes.Click += async (_, _) =>
-        {
-            CarregarContas();
-            CarregarCartoes();
-            await CarregarDadosComprasAsync();
-        };
         btnRegistrarCompra.Click += async (_, _) => await RegistrarCompraAsync();
         cmbCartaoCompra.SelectedValueChanged += (_, _) => AtualizarLimiteCompra();
         numValorCompra.ValueChanged += (_, _) => AtualizarLimiteCompra();
@@ -72,18 +68,15 @@ public partial class UcCartoes
 
     private async Task CarregarDadosComprasAsync(Guid? preferirCartao = null)
     {
-        if (_operacaoCompra || _categorias is null || _cartoes is null || _contas is null) return;
+        if (_operacaoCompra || _cartoes is null || _contas is null || IsDisposed || Disposing) return;
         OcupacaoCompra(true);
+        txtResultadoCompra.Text = "Consultando cartões e compras…";
         try { await RecarregarComprasCoreAsync(preferirCartao); }
         catch (Exception erro)
         {
             Debug.WriteLine(erro);
-            _preenchendoCompras = true;
-            cmbCartaoCompra.DataSource = null;
-            cmbCartaoHistorico.DataSource = null;
-            cmbCategoriaCompra.DataSource = null;
-            dgvComprasCartao.DataSource = null;
-            txtDetalhesCompra.Clear();
+            if (IsDisposed || Disposing) return;
+            InvalidarDadosCartoes();
             txtResultadoCompra.Text = "Não foi possível carregar os dados. Confira a conexão e clique em Atualizar dados.";
         }
         finally { _preenchendoCompras = false; OcupacaoCompra(false); }
@@ -91,12 +84,14 @@ public partial class UcCartoes
 
     private async Task RecarregarComprasCoreAsync(Guid? preferirCartao = null)
     {
-        if (_cartoes is null || _contas is null || _categorias is null) return;
+        if (_cartoes is null || _contas is null || IsDisposed || Disposing) return;
         Guid? anterior = preferirCartao ?? cmbCartaoCompra.SelectedValue as Guid?;
         Guid? historico = cmbCartaoHistorico.SelectedValue as Guid?;
         Guid? categoria = cmbCategoriaCompra.SelectedValue as Guid?;
-        var dados = await Task.Run(() => (_cartoes.ListarTodos(), _contas.ListarTodas(), _categorias.ListarTodas()));
+        var dados = await Task.Run(() => (_cartoes.ListarTodos(), _contas.ListarTodas(),
+            _categorias?.ListarTodas() ?? new List<Categoria>()));
         if (IsDisposed) return;
+        PreencherCadastroCartoes(dados.Item1, dados.Item2);
         dtpDataCompra.MaxDate = DateTime.Today;
         var contas = dados.Item2.ToDictionary(c => c.Id);
         var opcoes = dados.Item1.Select(c => new OpcaoCartao(c.Id,
@@ -118,6 +113,7 @@ public partial class UcCartoes
         }
         finally { _preenchendoCompras = false; }
         await CarregarHistoricoCoreAsync();
+        if (!IsDisposed && !Disposing) _consultaCartoesValida = true;
     }
 
     private static void PreencherSelecao(ComboBox combo, List<OpcaoCartao> opcoes, Guid? anterior)
@@ -141,7 +137,7 @@ public partial class UcCartoes
 
     private async Task RegistrarCompraAsync()
     {
-        if (_operacaoCompra || _servicoCompras is null) return;
+        if (_operacaoCompra || !_consultaCartoesValida || _servicoCompras is null || IsDisposed || Disposing) return;
         CompraCartao? salva = null;
         try
         {
@@ -156,6 +152,15 @@ public partial class UcCartoes
             string descricao = txtDescricaoCompra.Text, justificativa = txtJustificativaCompra.Text;
             DateTime data = dtpDataCompra.Value.Date;
             OcupacaoCompra(true);
+            CartaoCredito cartao = await Task.Run(() => _cartoes!.BuscarPorId(cartaoId)
+                ?? throw new ConflitoFinanceiroException("O cartão não está mais disponível."));
+            if (IsDisposed || Disposing) return;
+            CompraCartao previa = new(cartao, valor, descricao, data, categoriaId, importancia, planejamento, urgencia, justificativa, quantidade);
+            if (data > DateTime.Today || previa.Parcelas[0].Ciclo.Encerramento <= DateTime.Today)
+                throw new ArgumentException("Informe uma compra do ciclo aberto, sem data futura.");
+            if (valor > cartao.LimiteDisponivel) throw new ArgumentException("A compra ultrapassa o limite disponível.");
+            if (!_confirmacao.Confirmar(this, "Registrar compra", ResumoOperacao.Compra(previa, cmbCartaoCompra.Text, cmbCategoriaCompra.Text)))
+            { txtResultadoCompra.Text = "Compra cancelada. Preenchimento preservado."; return; }
             txtResultadoCompra.Text = "Registrando compra…";
             salva = await Task.Run(() => _servicoCompras.Registrar(cartaoId, valor, descricao, data,
                 categoriaId, importancia, planejamento, urgencia, justificativa, quantidade));
@@ -168,16 +173,35 @@ public partial class UcCartoes
             dtpDataCompra.Value = DateTime.Today;
             await RecarregarComprasCoreAsync(cartaoId);
             if (IsDisposed) return;
-            CarregarCartoes();
             txtResultadoCompra.Text = $"Compra registrada: {salva.Descricao}\r\nTotal: {salva.Valor.ToString("C2", TabelaVisual.Cultura)} • {salva.QuantidadeParcelas} parcela(s).\r\nPrimeiro vencimento: {salva.Parcelas[0].Ciclo.Vencimento:dd/MM/yyyy}. Consulte os detalhes em Compras do cartão e em Faturas.";
+        }
+        catch (ConflitoFinanceiroException erro) when (salva is null)
+        {
+            Debug.WriteLine(erro);
+            if (IsDisposed || Disposing) return;
+            try
+            {
+                await RecarregarComprasCoreAsync();
+                if (!IsDisposed && !Disposing)
+                    txtResultadoCompra.Text = erro.Message + " Dados atualizados. Confira antes de confirmar novamente.";
+            }
+            catch (Exception falhaConsulta)
+            {
+                Debug.WriteLine(falhaConsulta);
+                if (IsDisposed || Disposing) return;
+                InvalidarDadosCartoes();
+                txtResultadoCompra.Text = "A compra não foi confirmada. Use Atualizar dados antes de tentar novamente.";
+            }
         }
         catch (Exception erro)
         {
             Debug.WriteLine(erro);
             if (IsDisposed) return;
+            if (salva is not null || !FalhaTela.EhValidacao(erro))
+                InvalidarDadosCartoes();
             txtResultadoCompra.Text = salva is not null
                 ? "A compra foi salva, mas a consulta não pôde ser atualizada. Use Atualizar dados para conferir."
-                : erro is ArgumentException or InvalidOperationException ? erro.Message
+                : FalhaTela.EhValidacao(erro) ? erro.Message
                 : "Não foi possível concluir o registro. Confira a conexão e consulte o histórico antes de tentar novamente.";
         }
         finally { OcupacaoCompra(false); }
@@ -185,6 +209,7 @@ public partial class UcCartoes
 
     private async Task CarregarHistoricoAsync()
     {
+        if (_operacaoCompra || IsDisposed || Disposing) return;
         OcupacaoCompra(true);
         try { await CarregarHistoricoCoreAsync(); }
         catch (Exception erro)
@@ -192,8 +217,9 @@ public partial class UcCartoes
             Debug.WriteLine(erro);
             if (!IsDisposed)
             {
-                dgvComprasCartao.DataSource = null;
+                InvalidarDadosCartoes();
                 txtDetalhesCompra.Text = "Não foi possível consultar as compras. Clique em Atualizar dados.";
+                txtResultadoCompra.Text = "Consulta indisponível. Use Atualizar dados antes de registrar.";
             }
         }
         finally { OcupacaoCompra(false); }
@@ -236,10 +262,30 @@ public partial class UcCartoes
     {
         _operacaoCompra = ocupado;
         if (IsDisposed) return;
+        UseWaitCursor = ocupado;
         tabCartoes.Enabled = !ocupado;
         btnAtualizarCartoes.Enabled = !ocupado;
-        btnRegistrarCompra.Enabled = !ocupado && _servicoCompras is not null &&
+        btnSalvarCartao.Enabled = !ocupado && _consultaCartoesValida && cmbContaCartao.Items.Count > 0;
+        btnRegistrarCompra.Enabled = !ocupado && _consultaCartoesValida && _servicoCompras is not null &&
             cmbCartaoCompra.Items.Count > 0 && cmbCategoriaCompra.Items.Count > 0;
+    }
+
+    private void InvalidarDadosCartoes()
+    {
+        _consultaCartoesValida = false;
+        _preenchendoCompras = true;
+        try
+        {
+            cmbContaCartao.DataSource = null;
+            cmbCartaoCompra.DataSource = null;
+            cmbCartaoHistorico.DataSource = null;
+            cmbCategoriaCompra.DataSource = null;
+            dgvCartoes.DataSource = null;
+            dgvComprasCartao.DataSource = null;
+            txtDetalhesCompra.Clear();
+            AtualizarLimiteCompra();
+        }
+        finally { _preenchendoCompras = false; }
     }
 
     private sealed record OpcaoCartao(Guid Id, string Nome, decimal Disponivel);
