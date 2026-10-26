@@ -1,6 +1,7 @@
 ﻿using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
+using JKCASH.Application.Excecoes;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -35,6 +36,11 @@ namespace JKCASH.Application.Servicos
             string justificativa)
         {
             ArgumentNullException.ThrowIfNull(conta);
+            if (!conta.Ativa)
+            {
+                throw new ConflitoFinanceiroException(
+                    "A conta foi desativada. Atualize e selecione uma conta ativa. ");
+            }
             if(!_categorias.Existe(categoriaId))
             {
                 throw new ArgumentException(

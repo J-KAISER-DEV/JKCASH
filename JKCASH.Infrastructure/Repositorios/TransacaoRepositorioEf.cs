@@ -1,19 +1,19 @@
-using JKCASH.Application.Interfaces;
+﻿using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
-using JKCASH.Application.Excecoes;
 using JKCASH.Domain.Enums;
+using JKCASH.Application.Excecoes;
 
 namespace JKCASH.Infrastructure.Repositorios
 {
-    public class TransacaoRepositorioSql : ITransacaoRepositorio
+    public sealed class TransacaoRepositorioEf : ITransacaoRepositorio
     {
         private readonly Func<JKCASHDbContext> _criarContexto;
 
-        public TransacaoRepositorioSql(Func<JKCASHDbContext>? criarContexto = null)
+        public TransacaoRepositorioEf(Func<JKCASHDbContext> criarContexto)
         {
-            _criarContexto = criarContexto ?? ConexaoSql.CriarContexto;
+            _criarContexto = criarContexto ?? throw new ArgumentNullException(nameof(criarContexto));
         }
 
         public List<Transacao> ListarPorPeriodo(

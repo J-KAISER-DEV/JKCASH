@@ -1,4 +1,4 @@
-using JKCASH.Application.Interfaces;
+﻿using JKCASH.Application.Interfaces;
 using JKCASH.Application.Excecoes;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
@@ -7,16 +7,16 @@ using System.Data;
 using JKCASH.Domain.Enums;
 namespace JKCASH.Infrastructure.Repositorios
 {
-    public class CompraCartaoRepositorioLocal
+    public sealed class CompraCartaoRepositorioEf
         : ICompraCartaoRepositorio, IFaturaCartaoRepositorio
     {
         private readonly TimeProvider _relogio;
         private readonly Func<JKCASHDbContext> _criarContexto;
 
-        public CompraCartaoRepositorioLocal(TimeProvider? relogio = null, Func<JKCASHDbContext>? criarContexto = null)
+        public CompraCartaoRepositorioEf(Func<JKCASHDbContext> criarContexto, TimeProvider? relogio = null)
         {
             _relogio = relogio ?? TimeProvider.System;
-            _criarContexto = criarContexto ?? ConexaoLocal.CriarContexto;
+            _criarContexto = criarContexto ?? throw new ArgumentNullException(nameof(criarContexto));
         }
 
         public void Adicionar(CompraCartao compra, CartaoCredito cartao)

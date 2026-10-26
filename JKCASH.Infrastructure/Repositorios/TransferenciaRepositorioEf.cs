@@ -1,4 +1,4 @@
-using JKCASH.Application.Excecoes;
+﻿using JKCASH.Application.Excecoes;
 using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
@@ -6,13 +6,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JKCASH.Infrastructure.Repositorios;
 
-public sealed class TransferenciaRepositorioSql : ITransferenciaRepositorio
+public sealed class TransferenciaRepositorioEf : ITransferenciaRepositorio
 {
     private readonly Func<JKCASHDbContext> _criarContexto;
 
-    public TransferenciaRepositorioSql(Func<JKCASHDbContext>? criarContexto = null)
+    public TransferenciaRepositorioEf(Func<JKCASHDbContext> criarContexto)
     {
-        _criarContexto = criarContexto ?? ConexaoSql.CriarContexto;
+        _criarContexto = criarContexto ?? throw new ArgumentNullException(nameof(criarContexto));
     }
     public void Registrar(Transferencia transferencia, Conta origem, Conta destino)
     {

@@ -18,6 +18,8 @@ O Windows Forms continua usando SQLite, sem exigir SQL Server instalado. A etapa
 
 ## Resultado da verificação
 
+**Atualização de 26/10/2026:** a montagem das seis telas foi centralizada em `FabricaTelas`. Os pares SQL Server/SQLite de categorias, cartões, contas, transações, transferências, compras/faturas e exclusões foram substituídos por implementações `RepositorioEf` que recebem uma função de criação de contexto. Os nomes de classes e apontamentos de duplicação da análise original abaixo são históricos. A solução compilou sem avisos ou erros após a extração; a validação prática dos repositórios unificados permanece pendente. Não foram modificados dados nem esquema dos bancos durante essa refatoração.
+
 - A solução `JKCASH.sln` compilou com zero erros.
 - Houve um aviso NU1900 de indisponibilidade da consulta de vulnerabilidades do NuGet. Isso não confirma a presença nem a ausência de vulnerabilidades nos pacotes.
 - A solução contém cinco projetos após a remoção do projeto de testes. `JKCASH.Api` existe no repositório, mas está fora dessa solução; seu código ainda corresponde à estrutura inicial com WeatherForecast e não é usado pelo WinForms.

@@ -46,10 +46,17 @@ public sealed class PagamentoFaturaServico
             ImportanciaTransacao.Essencial, PlanejamentoTransacao.Planejada,
             UrgenciaTransacao.SemUrgencia, "Pagamento confirmado da fatura do cartão de crédito.");
         PagamentoFatura pagamento = new(fatura.Id, conta.Id, saida.Id, valor, hoje);
+        if (valor > fatura.SaldoPendente)
+        {
+            throw new ConflitoFinanceiroException(
+                "O valor informado ultrapassa o saldo pendente atual. " +
+        " Confira a fatura antes de confirmar novamente.");
+        }
         FaturaCartao atualizada = fatura.ComPagamento(pagamento);
         conta.ValidarSaida(valor);
         if (valor > cartao.ValorUtilizado)
-            throw new InvalidOperationException("O pagamento ultrapassa o valor utilizado do cartão.");
+            throw new ConflitoFinanceiroException("O pagamento ultrapassa o valor utilizado do cartão." +
+        "Confira os dados antes de confirmar novamente.");
 
         bool limiteLiberado = false;
         conta.Debitar(valor);

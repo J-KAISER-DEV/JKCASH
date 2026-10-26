@@ -2,12 +2,21 @@
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.Sqlite;
 using Microsoft.Data.SqlClient;
+using System.Data;
 
 namespace JKCASH.Infrastructure.Repositorios
 {
-    public class ContaRepositorioSql : IContaRepositorio
+    public sealed class ContaRepositorioEf : IContaRepositorio
     {
+        private readonly Func<JKCASHDbContext> _criarContexto;
+
+        public ContaRepositorioEf(Func<JKCASHDbContext> criarContexto)
+        {
+            ArgumentNullException.ThrowIfNull(criarContexto);
+            _criarContexto = criarContexto;
+        }
         public void Remover(Guid id)
             => Remover(id, excluirTransacoes: false);
 
@@ -16,7 +25,8 @@ namespace JKCASH.Infrastructure.Repositorios
 
         private void Remover(Guid id, bool excluirTransacoes)
         {
-            using JKCASHDbContext contexto = ConexaoSql.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
+            using var operacao = contexto.Database.BeginTransaction(IsolationLevel.Serializable);
             Conta conta = contexto.Contas.SingleOrDefault(conta => conta.Id == id)
                 ?? throw new InvalidOperationException("Conta não encontrada.");
 
@@ -40,8 +50,9 @@ namespace JKCASH.Infrastructure.Repositorios
             {
                 // SaveChanges usa uma transação: os DELETEs são confirmados juntos.
                 contexto.SaveChanges();
+                operacao.Commit();
             }
-            catch (DbUpdateException erro) when (erro.InnerException is SqlException { Number: 547 })
+            catch (DbUpdateException erro) when (erro.InnerException is SqliteException { SqliteExtendedErrorCode: 787 } or SqlException { Number: 547 })
             {
                 // A chave estrangeira também protege contra vínculos criados durante a exclusão.
                 throw new InvalidOperationException(
@@ -55,7 +66,7 @@ namespace JKCASH.Infrastructure.Repositorios
 
         public List<Conta> ListarTodas()
         {
-            using JKCASHDbContext contexto = ConexaoSql.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
 
             return contexto.Contas
                 .AsNoTracking()
@@ -68,7 +79,7 @@ namespace JKCASH.Infrastructure.Repositorios
         {
             ArgumentNullException.ThrowIfNull(conta);
 
-            using JKCASHDbContext contexto = ConexaoSql.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
 
             contexto.Contas.Add(conta);
             contexto.SaveChanges();

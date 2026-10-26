@@ -2,7 +2,7 @@
 
 using System.Diagnostics;
 using JKCASH.Application.Interfaces;
-using JKCASH.Domain.Entidades;
+using JKCASH.Application.Modelos;
 using JKCASH.Domain.Enums;
 
 namespace JKCASH.WinForms.Telas;
@@ -11,11 +11,7 @@ public sealed class UcDashboard : UserControl
 {
     public event EventHandler? AbrirTransacoes;
     public event EventHandler? AbrirFaturas;
-    private readonly IContaRepositorio? _contas;
-    private readonly ICategoriaRepositorio? _categorias;
-    private readonly ITransacaoRepositorio? _transacoes;
-    private readonly ICartaoCreditoRepositorio? _cartoes;
-    private readonly IFaturaCartaoRepositorio? _faturas;
+    private readonly IDashboardConsulta? _consulta;
     private readonly ComboBox _cmbContas = new() { Name = "cmbContaDashboard", DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
     private readonly DateTimePicker _mes = new() { Name = "dtpMesDashboard", Format = DateTimePickerFormat.Custom, CustomFormat = "MMMM 'de' yyyy", ShowUpDown = true, Width = 170 };
     private readonly Button _atualizar = EstiloVisual.Botao("Atualizar");
@@ -65,15 +61,10 @@ public sealed class UcDashboard : UserControl
         _mes.Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
     }
 
-    public UcDashboard(IContaRepositorio contas, ICategoriaRepositorio categorias, ITransacaoRepositorio transacoes,
-        ICartaoCreditoRepositorio cartoes, IFaturaCartaoRepositorio faturas) : this()
+    public UcDashboard(IDashboardConsulta consulta) : this()
     {
-        ArgumentNullException.ThrowIfNull(contas);
-        ArgumentNullException.ThrowIfNull(categorias);
-        ArgumentNullException.ThrowIfNull(transacoes);
-        ArgumentNullException.ThrowIfNull(cartoes);
-        ArgumentNullException.ThrowIfNull(faturas);
-        _contas = contas; _categorias = categorias; _transacoes = transacoes; _cartoes = cartoes; _faturas = faturas;
+        ArgumentNullException.ThrowIfNull(consulta);
+        _consulta = consulta;
         Load += async (_, _) => await AtualizarDashboardAsync();
         _atualizar.Click += async (_, _) => await AtualizarDashboardAsync();
         _cmbContas.SelectedValueChanged += async (_, _) => { if (!_preenchendo) await AtualizarDashboardAsync(); };
@@ -186,26 +177,15 @@ public sealed class UcDashboard : UserControl
 
     private async Task AtualizarDashboardAsync()
     {
-        if (_ocupado || _contas is null || _categorias is null || _transacoes is null || _cartoes is null || _faturas is null) return;
+        if (_ocupado || _consulta is null) return;
         _ocupado = true;
         _atualizar.Enabled = _cmbContas.Enabled = _mes.Enabled = false;
         _status.Text = "Consultando dados…";
         Guid? contaId = (_cmbContas.SelectedItem as OpcaoConta)?.Id;
-        DateTime inicio = new(_mes.Value.Year, _mes.Value.Month, 1);
-        DateTime fim = inicio.AddMonths(1).AddDays(-1);
+        DateTime mes = _mes.Value;
         try
         {
-            var dados = await Task.Run(() =>
-            {
-                var contas = _contas.ListarTodas();
-                Guid? filtro = contas.Any(c => c.Id == contaId) ? contaId : null;
-                var selecionadas = contas.Where(c => !filtro.HasValue || c.Id == filtro).ToList();
-                var ids = selecionadas.Select(c => c.Id).ToList();
-                var transacoes = ids.Count == 0 ? new List<Transacao>() : _transacoes.ListarPorPeriodo(ids, inicio, fim);
-                var cartoes = _cartoes.ListarTodos().Where(c => ids.Contains(c.ContaId)).ToList();
-                var faturas = cartoes.SelectMany(c => _faturas.ListarPorCartao(c.Id)).ToList();
-                return new DadosDashboard(contas, selecionadas, transacoes, _categorias.ListarTodas(), cartoes, faturas, filtro);
-            });
+            DashboardResumo dados = await Task.Run(() => _consulta.Consultar(contaId, mes));
             if (IsDisposed) return;
             _preenchendo = true;
             try
@@ -214,32 +194,24 @@ public sealed class UcDashboard : UserControl
                 opcoes.AddRange(dados.Contas.Select(c => new OpcaoConta(c.Id, $"{c.Nome} ({c.Banco}){(c.Ativa ? "" : " — inativa")}")));
                 _cmbContas.DisplayMember = nameof(OpcaoConta.Nome);
                 _cmbContas.DataSource = opcoes;
-                _cmbContas.SelectedItem = opcoes.First(c => c.Id == dados.Filtro);
+                _cmbContas.SelectedItem = opcoes.First(c => c.Id == dados.ContaId);
             }
             finally { _preenchendo = false; }
-            var comuns = dados.Transacoes.Where(t => t.TransferenciaId is null).ToList();
-            decimal receitas = comuns.Where(t => t.Tipo == TipoTransacao.Entrada).Sum(t => t.Valor);
-            decimal despesas = comuns.Where(t => t.Tipo == TipoTransacao.Saida).Sum(t => t.Valor);
-            decimal pendente = dados.Faturas.Where(f => f.Ciclo.Vencimento >= inicio && f.Ciclo.Vencimento <= fim).Sum(f => f.SaldoPendente);
-            decimal[] valores = [dados.Selecionadas.Sum(c => c.Saldo.SaldoAtual), receitas, despesas, pendente];
+            decimal[] valores = [dados.SaldoAtual, dados.Receitas, dados.Despesas, dados.FaturasPendentes];
             for (int i = 0; i < valores.Length; i++) _valores[i].Text = valores[i].ToString("C2", TabelaVisual.Cultura);
             _valores[0].ForeColor = valores[0] < 0 ? EstiloVisual.Vermelho : EstiloVisual.Texto;
-            var categorias = dados.Categorias.ToDictionary(c => c.Id, c => c.Nome);
-            var contasNome = dados.Contas.ToDictionary(c => c.Id, c => c.Nome);
-            _movimentacoes.DataSource = dados.Transacoes.OrderByDescending(t => t.Data).ThenByDescending(t => t.Id).Take(8)
-                .Select(t => new LinhaMovimentacao(t, contasNome.GetValueOrDefault(t.ContaId, "Conta não encontrada"), categorias.GetValueOrDefault(t.CategoriaId, "Categoria não encontrada"))).ToList();
-            RenderizarCategorias(comuns.Where(t => t.Tipo == TipoTransacao.Saida)
-                .GroupBy(t => t.CategoriaId).Select(g => (categorias.GetValueOrDefault(g.Key, "Categoria não encontrada"), g.Sum(t => t.Valor))).OrderByDescending(g => g.Item2).ToList());
-            decimal limite = dados.Cartoes.Sum(c => c.Limite), disponivel = dados.Cartoes.Sum(c => c.LimiteDisponivel);
-            _creditoNome.Text = dados.Cartoes.Count == 0 ? "Nenhum cartão vinculado"
-                : dados.Cartoes.Count == 1 ? "1 cartão vinculado" : $"{dados.Cartoes.Count} cartões vinculados";
+            _movimentacoes.DataSource = dados.Movimentacoes.Select(m => new LinhaMovimentacao(m)).ToList();
+            RenderizarCategorias(dados.SaidasPorCategoria.Select(c => (c.Nome, c.Valor)).ToList());
+            decimal limite = dados.LimiteTotal, disponivel = dados.LimiteDisponivel;
+            _creditoNome.Text = dados.QuantidadeCartoes == 0 ? "Nenhum cartão vinculado"
+                : dados.QuantidadeCartoes == 1 ? "1 cartão vinculado" : $"{dados.QuantidadeCartoes} cartões vinculados";
             _creditoDisponivel.Text = disponivel.ToString("C2", TabelaVisual.Cultura);
             _creditoTotal.Text = $"Limite total: {limite.ToString("C2", TabelaVisual.Cultura)}";
             _proporcaoDisponivel = limite == 0 ? 0 : Math.Clamp(disponivel / limite, 0m, 1m);
             _barra.Width = (int)(_faixa.ClientSize.Width * _proporcaoDisponivel);
             _status.Text = dados.Contas.Count == 0 ? "Nenhuma conta cadastrada. Comece pelo menu Contas." :
-                $"Dados atualizados • {inicio:dd/MM/yyyy} a {fim:dd/MM/yyyy}. Saldo e limites são atuais; receitas e despesas excluem transferências internas." +
-                (dados.Transacoes.Count == 0 ? " Nenhuma movimentação no período." : "");
+                $"Dados atualizados • {dados.Inicio:dd/MM/yyyy} a {dados.FimExclusivo.AddDays(-1):dd/MM/yyyy}. Saldo e limites são atuais; receitas e despesas excluem transferências internas." +
+                (dados.Movimentacoes.Count == 0 ? " Nenhuma movimentação no período." : "");
         }
         catch (Exception erro)
         {
@@ -298,15 +270,14 @@ public sealed class UcDashboard : UserControl
     }
 
     private sealed record OpcaoConta(Guid? Id, string Nome);
-    private sealed record DadosDashboard(List<Conta> Contas, List<Conta> Selecionadas, List<Transacao> Transacoes,
-        List<Categoria> Categorias, List<CartaoCredito> Cartoes, List<FaturaCartao> Faturas, Guid? Filtro);
-    private sealed record LinhaMovimentacao(Transacao Transacao, string Conta, string Categoria)
+    private sealed record LinhaMovimentacao(DashboardMovimentacao Movimento)
     {
-        public DateTime Data => Transacao.Data;
-        public string Descricao => Transacao.Descricao;
-        public decimal Valor => Transacao.Valor;
-        public string Tipo => (Transacao.TransferenciaId.HasValue ? "Transferência — " : "") +
-            (Transacao.Tipo == TipoTransacao.Entrada ? "Entrada" : "Saída");
+        public DateTime Data => Movimento.Data;
+        public string Descricao => Movimento.Descricao;
+        public string Conta => Movimento.Conta;
+        public string Categoria => Movimento.Categoria;
+        public decimal Valor => Movimento.Valor;
+        public string Tipo => (Movimento.Transferencia ? "Transferência — " : "") + Movimento.Tipo;
     }
 
     private Control CriarMovimentacoes()
@@ -356,8 +327,8 @@ public sealed class UcDashboard : UserControl
         {
             if (e.RowIndex < 0 || tabela.Rows[e.RowIndex].DataBoundItem is not LinhaMovimentacao linha || e.CellStyle is null) return;
             if (tabela.Columns[e.ColumnIndex].Name is not ("Tipo" or "Valor")) return;
-            Color cor = linha.Transacao.TransferenciaId.HasValue ? EstiloVisual.MenuSelecionado
-                : linha.Transacao.Tipo == TipoTransacao.Entrada ? EstiloVisual.Verde : EstiloVisual.Vermelho;
+            Color cor = linha.Movimento.Transferencia ? EstiloVisual.MenuSelecionado
+                : linha.Movimento.Tipo == TipoTransacao.Entrada ? EstiloVisual.Verde : EstiloVisual.Vermelho;
             e.CellStyle.ForeColor = e.CellStyle.SelectionForeColor = cor;
         };
         painel.Controls.Add(tabela);

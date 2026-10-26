@@ -2,6 +2,23 @@
 
 Lista de necessidades levantadas durante o uso da aplicação. Registrar um item aqui não significa que ele já foi implementado.
 
+## Cronograma atualizado — 26/10/2026
+
+Ordem proposta de trabalho, sem datas de entrega estimadas. O Windows Forms já utiliza SQLite em todas as telas; a importação dos registros antigos do SQL Server continua pendente, se necessária.
+
+| Etapa | Objetivo | Situação |
+|---|---|---|
+| 1. Consistência financeira | Conferir o estado atual e gravar lançamentos, saldos e limites em conjunto; tratar conflitos | Implementada no código; últimos ajustes dos serviços compilados, com validação prática pendente |
+| 2. Organização das dependências | Centralizar a montagem das telas, repositórios e serviços | Concluída no Windows Forms pela FabricaTelas; navegação permanece em FrmPrincipal |
+| 3. Redução de duplicação | Compartilhar operações EF comuns entre repositórios SQL Server e SQLite, mantendo diferenças dos provedores | Todos os pares SQL/Local unificados em sete repositórios EF; solução compilada, validação prática pendente; demais repetições podem ser avaliadas separadamente |
+| 4. Consultas eficientes | Separar consultas do dashboard da apresentação, limitar o histórico carregado e revisar filtros de período e prévias de exclusão | DashboardConsulta e DTO integrados, com somas no banco e oito movimentações; leitura SQLite vazia conferida; histórico preenchido, medições, extrato e prévias de exclusão pendentes |
+| 5. Responsividade e tratamento de falhas | Padronizar carregamento e gravação sem bloquear a interface e evitar cliques repetidos | Parcialmente existente; falta padronizar as telas restantes |
+| 6. Melhorias funcionais | Confirmação com resumo antes de registrar e avaliação da necessidade apenas nas saídas | Itens 001 e 002 pendentes |
+| 7. API | Reutilizar serviços para expor operações do JKCASH, conectar SQL Server e planejar autenticação | Projeto criado; ainda com o exemplo WeatherForecast |
+| 8. Sincronização | Pendências persistentes, envio e recebimento sem duplicação e resolução de conflitos | Adiada; não há sincronização implementada |
+
+Na etapa 2 não foi introduzido um contêiner de injeção: a fábrica faz a composição manual. Cada operação de repositório continua criando e liberando seu contexto. Mudanças nesta ordem serão registradas conforme as prioridades do usuário.
+
 ## 001 — Confirmar o registro de uma transação
 
 - **Situação:** a fazer.

@@ -1,7 +1,6 @@
-﻿using JKCASH.Application.Servicos;
-using JKCASH.Infrastructure.Repositorios;
-using JKCASH.WinForms.Telas;
+﻿using JKCASH.WinForms.Telas;
 using JKCASH.WinForms.Visual;
+using JKCASH.WinForms.Inicializacao;
 namespace JKCASH.WinForms;
 
 public partial class FrmPrincipal
@@ -117,17 +116,7 @@ public partial class FrmPrincipal
 
         if (tela == "Transações")
         {
-            CategoriaRepositorioLocal categorias = new();
-            TransacaoRepositorioLocal repositorioTransacoes = new();
-            TransacaoServico servico = new(
-       repositorioTransacoes,
-       categorias);
-
-            UcTransacoes transacoes = new(
-                new ContaRepositorioLocal(),
-                categorias,
-                servico,
-                repositorioTransacoes);
+            UcTransacoes transacoes = FabricaTelas.CriarTransacoes();
 
             transacoes.Dock = DockStyle.Fill;
 
@@ -137,11 +126,7 @@ public partial class FrmPrincipal
 
         if (tela == "Contas")
         {
-            ContaRepositorioLocal repositorioContas = new();
-            CategoriaRepositorioLocal categorias = new();
-            TransferenciaServico transferencias = new(
-                repositorioContas, categorias, new TransferenciaRepositorioLocal());
-            UcContas contas = new(repositorioContas, categorias, transferencias);
+            UcContas contas = FabricaTelas.CriarContas();
             contas.Dock = DockStyle.Fill;
             pnlConteudo.Controls.Add(contas);
             return;
@@ -149,8 +134,7 @@ public partial class FrmPrincipal
 
         if (tela == "Dashboard")
         {
-            UcDashboard dashboard = new(new ContaRepositorioLocal(), new CategoriaRepositorioLocal(),
-                new TransacaoRepositorioLocal(), new CartaoCreditoRepositorioLocal(), new CompraCartaoRepositorioLocal());
+            UcDashboard dashboard = FabricaTelas.CriarDashboard();
             dashboard.AbrirTransacoes += (_, _) => AbrirTela("Transações");
             dashboard.AbrirFaturas += (_, _) => AbrirTela("Faturas");
             pnlConteudo.Controls.Add(dashboard);
@@ -160,7 +144,7 @@ public partial class FrmPrincipal
         }
         if (tela == "Categorias")
         {
-            UcCategorias categorias = new(new CategoriaRepositorioLocal());
+            UcCategorias categorias = FabricaTelas.CriarCategorias();
 
             categorias.Dock = DockStyle.Fill;
 
@@ -170,11 +154,7 @@ public partial class FrmPrincipal
         }
         if (tela == "Cartões")
         {
-            CartaoCreditoRepositorioLocal repositorioCartoes = new();
-            CategoriaRepositorioLocal categorias = new();
-            CompraCartaoRepositorioLocal compras = new();
-            CompraCartaoServico servico = new(repositorioCartoes, categorias, compras);
-            UcCartoes cartoes = new(repositorioCartoes, new ContaRepositorioLocal(), categorias, compras, servico);
+            UcCartoes cartoes = FabricaTelas.CriarCartoes();
 
             cartoes.Dock = DockStyle.Fill;
 
@@ -184,13 +164,8 @@ public partial class FrmPrincipal
 
         if (tela == "Faturas")
         {
-            CartaoCreditoRepositorioLocal cartoes = new();
-            ContaRepositorioLocal contas = new();
-            CategoriaRepositorioLocal categorias = new();
-            CompraCartaoRepositorioLocal comprasEFaturas = new();
-            PagamentoFaturaServico pagamentos = new(comprasEFaturas, cartoes, contas, categorias);
-            UcFaturas faturas = new(cartoes, comprasEFaturas, comprasEFaturas, contas, categorias, pagamentos)
-            { Dock = DockStyle.Fill };
+            UcFaturas faturas = FabricaTelas.CriarFaturas();
+            faturas.Dock = DockStyle.Fill;
             pnlConteudo.Controls.Add(faturas);
             return;
         }

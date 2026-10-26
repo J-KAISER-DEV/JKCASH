@@ -1,5 +1,6 @@
 ﻿using JKCASH.Application.Interfaces;
 using JKCASH.Infrastructure.Repositorios;
+using JKCASH.Infrastructure.Persistencia;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,7 +23,7 @@ namespace JKCASH.Inicializacao
                 return new ContaRepositorioEmMemoria(transacoesEmMemoria);
             }
 
-            return new ContaRepositorioSql();
+            return new ContaRepositorioEf(ConexaoSql.CriarContexto);
         }
 
         public static ICategoriaRepositorio CriarRepositorioCategorias(bool usarMemoria)
@@ -32,7 +33,7 @@ namespace JKCASH.Inicializacao
                 return new CategoriaRepositorioEmMemoria();
             }
 
-            return new CategoriaRepositorioSql();
+            return new CategoriaRepositorioEf(ConexaoSql.CriarContexto);
         }
 
         public static ITransacaoRepositorio CriarRepositorioTransacoes(bool usarMemoria)
@@ -42,7 +43,7 @@ namespace JKCASH.Inicializacao
                 return new TransacaoRepositoEmMemoria();
             }
 
-            return new TransacaoRepositorioSql();
+            return new TransacaoRepositorioEf(ConexaoSql.CriarContexto);
         }
 
         public static ICartaoCreditoRepositorio CriarRepositorioCartoes(bool usarMemoria)
@@ -50,14 +51,14 @@ namespace JKCASH.Inicializacao
             if (usarMemoria)
                 return new CartaoCreditoRepositorioEmMemoria();
 
-            return new CartaoCreditoRepositorioSql();
+            return new CartaoCreditoRepositorioEf(ConexaoSql.CriarContexto);
         }
 
         public static IExclusaoRepositorio CriarRepositorioExclusoes(bool usarMemoria,
             IContaRepositorio contas, ICategoriaRepositorio categorias, ITransacaoRepositorio transacoes,
             ICartaoCreditoRepositorio cartoes, ICompraCartaoRepositorio compras)
         {
-            if (!usarMemoria) return new ExclusaoRepositorioSql();
+            if (!usarMemoria) return new ExclusaoRepositorioEf(ConexaoSql.CriarContexto);
             return new ExclusaoRepositorioEmMemoria((ContaRepositorioEmMemoria)contas,
                 (CategoriaRepositorioEmMemoria)categorias, (TransacaoRepositoEmMemoria)transacoes,
                 (CartaoCreditoRepositorioEmMemoria)cartoes, (CompraCartaoRepositorio)compras);
@@ -73,7 +74,7 @@ namespace JKCASH.Inicializacao
                 return new TransferenciaRepositorioEmMemoria(contas, transacoesEmMemoria);
             }
 
-            return new TransferenciaRepositorioSql();
+            return new TransferenciaRepositorioEf(ConexaoSql.CriarContexto);
         }
 
         public static (ICompraCartaoRepositorio Compras, IFaturaCartaoRepositorio Faturas)
@@ -88,7 +89,7 @@ namespace JKCASH.Inicializacao
                 return (repositorio, repositorio);
             }
 
-            CompraCartaoRepositorioSql repositorioSql = new();
+            CompraCartaoRepositorioEf repositorioSql = new(ConexaoSql.CriarContexto);
             return (repositorioSql, repositorioSql);
         }
     }

@@ -16,6 +16,8 @@ O projeto de estudos `C#Aprendizado` tem uma solução própria em `C#Aprendizad
 
 ## Interface Windows Forms
 
+O carregamento dos indicadores é organizado por `IDashboardConsulta`/`DashboardConsulta` e devolve um `DashboardResumo`. As somas são feitas no banco, as faturas são filtradas por conjunto e apenas oito movimentações recentes são carregadas para a tabela. A tela cuida da apresentação. Veja [consulta do dashboard e limites da verificação](docs/dashboard-consulta.md).
+
 Defina **JKCASH.WinForms** como projeto de inicialização e execute com F5. Todas as telas usam o banco local SQLite em `%LocalAppData%\JKCASH\jkcash.db`, sem depender do serviço SQL Server. Na abertura, a aplicação cria a pasta de dados e aplica as migrações pendentes antes de mostrar a janela principal. Se a preparação falhar, informa o erro e não abre as telas com um banco incompleto. O arquivo fica fora da pasta do executável para preservar os dados nas atualizações.
 
 Os registros existentes apenas no SQL Server não são importados automaticamente. O Console mantém os modos SQL e em memória descritos abaixo. A integração local do Windows Forms foi compilada sem erros; a validação dos fluxos em execução permanece pendente.

@@ -6,11 +6,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JKCASH.Infrastructure.Repositorios;
 
-public sealed class ExclusaoRepositorioLocal : IExclusaoRepositorio
+public sealed class ExclusaoRepositorioEf : IExclusaoRepositorio
 {
+    private readonly Func<JKCASHDbContext> _criarContexto;
+
+    public ExclusaoRepositorioEf(Func<JKCASHDbContext> criarContexto)
+    {
+        ArgumentNullException.ThrowIfNull(criarContexto);
+        _criarContexto = criarContexto;
+    }
     public EstadoFinanceiro Carregar()
     {
-        using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+        using JKCASHDbContext contexto = _criarContexto();
         using var transacao = contexto.Database.BeginTransaction(IsolationLevel.Serializable);
         EstadoFinanceiro estado = Carregar(contexto);
         transacao.Commit();
@@ -29,7 +36,7 @@ public sealed class ExclusaoRepositorioLocal : IExclusaoRepositorio
 
     public void Salvar(EstadoFinanceiro atualizado, string versaoOriginal)
     {
-        using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+        using JKCASHDbContext contexto = _criarContexto();
         using var transacao = contexto.Database.BeginTransaction(IsolationLevel.Serializable);
         EstadoFinanceiro original = Carregar(contexto);
         if (original.Assinatura() != versaoOriginal)
@@ -44,7 +51,7 @@ public sealed class ExclusaoRepositorioLocal : IExclusaoRepositorio
         var contas = atualizado.Contas.Select(c => c.Id).ToHashSet();
         var categorias = atualizado.Categorias.Select(c => c.Id).ToHashSet();
 
-        // Dependentes saem antes dos registros que eles referenciam; tudo na mesma transação local.
+        // Dependentes saem antes dos registros que eles referenciam; tudo na mesma transação do banco.
         contexto.PagamentosFatura.Where(p => !pagamentos.Contains(p.Id)).ExecuteDelete();
         contexto.ParcelasCartao.Where(p => !parcelas.Contains(p.Id)).ExecuteDelete();
         contexto.ComprasCartao.Where(c => !compras.Contains(c.Id)).ExecuteDelete();
