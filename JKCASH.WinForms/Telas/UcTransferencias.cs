@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using JKCASH.Application.Interfaces;
+using JKCASH.Application.Excecoes;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -169,6 +170,24 @@ public partial class UcTransferencias : UserControl
                 + $"Origem: {origem?.Nome} • saldo atualizado: {(origem is null ? "Consulte o extrato" : Moeda(origem.Saldo))}.\r\n"
                 + $"Destino: {destino?.Nome} • saldo atualizado: {(destino is null ? "Consulte o extrato" : Moeda(destino.Saldo))}.\r\n"
                 + "Os dois registros estão disponíveis no extrato. Transferências internas não compõem receitas e despesas.";
+        }
+        catch (ConflitoFinanceiroException erro) when (salva is null)
+        {
+            Debug.WriteLine(erro);
+            if (IsDisposed) return;
+            try
+            {
+                await RecarregarCoreAsync();
+                if (!IsDisposed) txtResultadoTransferencia.Text = erro.Message +
+                    "\r\nSaldos atualizados. Confira os dados antes de confirmar novamente.";
+            }
+            catch (Exception falhaConsulta)
+            {
+                Debug.WriteLine(falhaConsulta);
+                if (IsDisposed) return;
+                InvalidarConsulta();
+                txtResultadoTransferencia.Text = "A transferência não foi confirmada. Não foi possível atualizar os saldos; use Atualizar contas antes de tentar novamente.";
+            }
         }
         catch (Exception erro)
         {

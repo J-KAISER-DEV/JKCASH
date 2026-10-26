@@ -1,5 +1,6 @@
 ﻿using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
+using JKCASH.Application.Excecoes;
 using JKCASH.Domain.Enums;
 using JKCASH.Domain.Validacoes;
 
@@ -36,12 +37,12 @@ public sealed class TransferenciaServico
 
         var contas = _contas.ListarTodas();
         Conta origem = contas.SingleOrDefault(conta => conta.Id == origemId)
-            ?? throw new ArgumentException("Conta de origem não encontrada.", nameof(origemId));
+            ?? throw new ConflitoFinanceiroException("A conta de origem não está mais disponível. Atualize as contas.");
         Conta destino = contas.SingleOrDefault(conta => conta.Id == destinoId)
-            ?? throw new ArgumentException("Conta de destino não encontrada.", nameof(destinoId));
+            ?? throw new ConflitoFinanceiroException("A conta de destino não está mais disponível. Atualize as contas.");
+        if (!origem.Ativa || !destino.Ativa)
+            throw new ConflitoFinanceiroException("Uma das contas foi desativada. Atualize e selecione duas contas ativas.");
         origem.ValidarSaida(valor);
-        if (!destino.Ativa)
-            throw new InvalidOperationException("A conta de destino está desativada.");
         if (!_categorias.Existe(categoriaId))
             throw new ArgumentException("Categoria não cadastrada.", nameof(categoriaId));
 

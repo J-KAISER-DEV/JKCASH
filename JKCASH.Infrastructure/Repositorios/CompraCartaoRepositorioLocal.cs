@@ -1,4 +1,5 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
+using JKCASH.Application.Excecoes;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
@@ -10,10 +11,12 @@ namespace JKCASH.Infrastructure.Repositorios
         : ICompraCartaoRepositorio, IFaturaCartaoRepositorio
     {
         private readonly TimeProvider _relogio;
+        private readonly Func<JKCASHDbContext> _criarContexto;
 
-        public CompraCartaoRepositorioLocal(TimeProvider? relogio = null)
+        public CompraCartaoRepositorioLocal(TimeProvider? relogio = null, Func<JKCASHDbContext>? criarContexto = null)
         {
             _relogio = relogio ?? TimeProvider.System;
+            _criarContexto = criarContexto ?? ConexaoLocal.CriarContexto;
         }
 
         public void Adicionar(CompraCartao compra, CartaoCredito cartao)
@@ -24,12 +27,12 @@ namespace JKCASH.Infrastructure.Repositorios
             if (compra.CartaoId != cartao.Id)
                 throw new ArgumentException("A compra pertence a outro cartão.", nameof(compra));
 
-            using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
             // Mantém as leituras e a gravação na mesma operação do banco.
             using var transacao = contexto.Database.BeginTransaction(IsolationLevel.Serializable);
 
             CartaoCredito persistido = contexto.CartoesCredito.SingleOrDefault(c => c.Id == cartao.Id)
-                ?? throw new ArgumentException("Cartão não encontrado.", nameof(cartao));
+                ?? throw new ConflitoFinanceiroException("O cartão não está mais disponível. Atualize os dados.");
 
             // O serviço já consumiu o limite do objeto recebido. Confere o estado anterior.
             if (persistido.ValorUtilizado != cartao.ValorUtilizado - compra.Valor
@@ -78,7 +81,7 @@ namespace JKCASH.Infrastructure.Repositorios
 
         public CompraCartao? BuscarPorId(Guid id)
         {
-            using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
 
             return ConsultarCompras(contexto)
                 .SingleOrDefault(compra => compra.Id == id);
@@ -86,7 +89,7 @@ namespace JKCASH.Infrastructure.Repositorios
 
         public List<CompraCartao> ListarPorCartao(Guid cartaoId)
         {
-            using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
 
             return ConsultarCompras(contexto)
                 .Where(compra => compra.CartaoId == cartaoId)
@@ -97,7 +100,7 @@ namespace JKCASH.Infrastructure.Repositorios
 
         FaturaCartao? IFaturaCartaoRepositorio.BuscarPorId(Guid id)
         {
-            using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
 
             return ConsultarFaturas(contexto)
                 .AsNoTrackingWithIdentityResolution()
@@ -106,7 +109,7 @@ namespace JKCASH.Infrastructure.Repositorios
 
         List<FaturaCartao> IFaturaCartaoRepositorio.ListarPorCartao(Guid cartaoId)
         {
-            using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
+            using JKCASHDbContext contexto = _criarContexto();
 
             return ConsultarFaturas(contexto)
                 .AsNoTrackingWithIdentityResolution()
@@ -147,41 +150,41 @@ namespace JKCASH.Infrastructure.Repositorios
                 throw new ArgumentException("Pagamento e saída da conta não correspondem à fatura.");
             }
 
-            using JKCASHDbContext contexto = ConexaoLocal.CriarContexto();
-            using var operacao = contexto.Database.BeginTransaction(IsolationLevel.Serializable);
-
-            FaturaCartao persistida = ConsultarFaturas(contexto).SingleOrDefault(f => f.Id == original.Id)
-                ?? throw new ArgumentException("Fatura não encontrada.", nameof(original));
-
-            if (persistida.CartaoId != original.CartaoId || persistida.Ciclo != original.Ciclo
-                || persistida.Total != original.Total || persistida.TotalPago != original.TotalPago
-                || !MesmosIds(persistida.Pagamentos.Select(p => p.Id), original.Pagamentos.Select(p => p.Id))
-                || !MesmosIds(persistida.Parcelas.Select(p => p.Id), original.Parcelas.Select(p => p.Id)))
+            using JKCASHDbContext contexto = _criarContexto();
+            OperacaoFinanceira.Executar(contexto, () =>
             {
-                throw new InvalidOperationException("A fatura foi alterada. Consulte novamente antes de pagar.");
-            }
 
-            Conta contaPersistida = contexto.Contas.SingleOrDefault(c => c.Id == conta.Id)
-                ?? throw new ArgumentException("Conta não encontrada.", nameof(conta));
-            CartaoCredito cartaoPersistido = contexto.CartoesCredito.SingleOrDefault(c => c.Id == cartao.Id)
-                ?? throw new ArgumentException("Cartão não encontrado.", nameof(cartao));
+                FaturaCartao persistida = ConsultarFaturas(contexto).SingleOrDefault(f => f.Id == original.Id)
+                    ?? throw new ConflitoFinanceiroException("A fatura não está mais disponível. Atualize os dados.");
 
-            // Os objetos recebidos já foram movimentados pelo serviço.
-            if (contaPersistida.Saldo.SaldoAtual != conta.Saldo.SaldoAtual + pagamento.Valor
-                || cartaoPersistido.ValorUtilizado != cartao.ValorUtilizado + pagamento.Valor)
-            {
-                throw new InvalidOperationException("Saldo ou limite foram alterados. Consulte novamente antes de pagar.");
-            }
+                if (persistida.CartaoId != original.CartaoId || persistida.Ciclo != original.Ciclo
+                    || persistida.Total != original.Total || persistida.TotalPago != original.TotalPago
+                    || !MesmosIds(persistida.Pagamentos.Select(p => p.Id), original.Pagamentos.Select(p => p.Id))
+                    || !MesmosIds(persistida.Parcelas.Select(p => p.Id), original.Parcelas.Select(p => p.Id)))
+                {
+                    throw new ConflitoFinanceiroException("A fatura foi alterada. Consulte novamente antes de pagar.");
+                }
 
-            _ = persistida.ComPagamento(pagamento);
-            contaPersistida.Debitar(pagamento.Valor);
-            cartaoPersistido.RegistrarPagamento(pagamento.Valor);
-            contexto.Transacoes.Add(transacao);
-            contexto.PagamentosFatura.Add(pagamento);
+                Conta contaPersistida = contexto.Contas.SingleOrDefault(c => c.Id == conta.Id)
+                    ?? throw new ConflitoFinanceiroException("A conta não está mais disponível. Atualize os dados.");
+                CartaoCredito cartaoPersistido = contexto.CartoesCredito.SingleOrDefault(c => c.Id == cartao.Id)
+                    ?? throw new ConflitoFinanceiroException("O cartão não está mais disponível. Atualize os dados.");
 
-            // Não chama outro repositório: todas as alterações usam este contexto e transação.
-            contexto.SaveChanges();
-            operacao.Commit();
+                OperacaoFinanceira.ConferirConta(contaPersistida, conta, conta.Saldo.SaldoAtual + pagamento.Valor);
+                if (cartaoPersistido.ValorUtilizado != cartao.ValorUtilizado + pagamento.Valor
+                    || cartaoPersistido.Limite != cartao.Limite || cartaoPersistido.ContaId != cartao.ContaId)
+                {
+                    throw new ConflitoFinanceiroException("O cartão foi alterado. Consulte o limite antes de pagar novamente.");
+                }
+
+                _ = persistida.ComPagamento(pagamento);
+                contaPersistida.Debitar(pagamento.Valor);
+                cartaoPersistido.RegistrarPagamento(pagamento.Valor);
+                contexto.Transacoes.Add(transacao);
+                contexto.PagamentosFatura.Add(pagamento);
+
+                // Não chama outro repositório: todas as alterações usam este contexto e transação.
+            });
         }
 
         private static IQueryable<CompraCartao> ConsultarCompras(JKCASHDbContext contexto)

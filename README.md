@@ -83,8 +83,6 @@ Cada classe de menu organiza suas operações. `NavegacaoConsole` reutiliza a ex
 
 Em **Contas > Excluir conta**, selecione uma conta: a tela informa quantas transações serão apagadas junto com ela. Digite **EXCLUIR** para confirmar a exclusão definitiva da conta e de suas transações; qualquer outra resposta cancela. As categorias são preservadas. Contas com cartões ou pagamentos de fatura vinculados continuam bloqueadas, inclusive quando pagam a fatura de um cartão de outra conta. No SQL, um único `SaveChanges` remove as transações e a conta em uma transação do banco: se uma exclusão falhar, tudo é desfeito. O serviço mantém a opção de excluir sem histórico bloqueada por padrão; a remoção conjunta exige a opção explícita `excluirTransacoes: true`.
 
-Para verificar a exclusão em memória e no SQL com dados temporários e rollback: `dotnet run --project JKCASH.TestesManuais -- --exclusao-contas`.
-
 ## Transferências entre contas
 
 Em **Contas > 4 - Transferir entre contas**, escolha a origem, informe o valor e selecione o destino. O destino deve ser outra conta ativa. O valor deve ser positivo, ter no máximo duas casas decimais e caber no saldo e cheque especial da origem. O menu verifica o valor antes de pedir os demais dados. Selecione a categoria, importância, planejamento, urgência, descrição e justificativa. A data e o horário são os do registro da transferência.
@@ -140,6 +138,8 @@ Uma fatura aberta pode receber pagamento antecipado e continua aberta para novas
 
 ## Pagamentos confirmados
 
+Transações, transferências e pagamentos conferem o saldo e as condições atuais da conta durante a gravação no SQLite e no SQL Server. Pagamentos também conferem a fatura e o limite do cartão. Se outra operação alterar esses dados, a movimentação é recusada e as telas atualizam os valores para revisão antes de uma nova confirmação. Uma falha na gravação desfaz toda a operação; não há repetição automática. O botão de registro fica bloqueado durante o processamento para evitar cliques repetidos.
+
 Em **Faturas > Registrar pagamento total ou parcial**, registre um pagamento já confirmado, na data de hoje. Selecione a fatura, a conta pagadora (que pode ser de outro banco), a categoria da saída e o valor. Valores precisam ser positivos, ter até duas casas decimais e não exceder o saldo pendente. A conta deve estar ativa e ter saldo ou cheque especial disponível.
 
 Cada pagamento gera uma saída na conta e um registro no histórico da fatura, ligados pelo Id da transação. O limite do cartão é liberado somente pelo valor pago. É possível pagar R$ 200, depois R$ 100 e depois R$ 200 para quitar uma fatura de R$ 500. As parcelas de outros meses permanecem comprometendo limite até seus próprios pagamentos.
@@ -156,15 +156,3 @@ O serviço desfaz a movimentação do saldo e do limite se o armazenamento falha
 6. Consulte o histórico em **Faturas > Consultar parcelas e pagamentos** e a saída em **Transações > Listar todas as transações**.
 7. Pague os R$ 60 restantes e confira que os R$ 200 das parcelas futuras continuam comprometendo o limite.
 8. No perfil SQL, feche e abra novamente para confirmar a permanência dos dados. No perfil em memória, os dados são descartados ao encerrar.
-
-## Testes
-
-Para executar os cenários do projeto de testes:
-
-```powershell
-dotnet run --project JKCASH.TestesManuais/JKCASH.TestesManuais.csproj
-```
-
-Além dos cenários anteriores, há 19 cenários automáticos para parcelas, calendário, opções de fechamento, agrupamento de faturas, pagamentos parciais, conta pagadora diferente, validações e recuperação em caso de falha. Esses cenários encerram o processo com erro quando uma verificação falha.
-
-O executor também chama `TesteCartaoCreditoSql`, que precisa do SQL Server configurado e de uma conta existente. Ele testa a inclusão e leitura de um cartão dentro de um `TransactionScope` sem confirmação, desfazendo a inclusão ao terminar.

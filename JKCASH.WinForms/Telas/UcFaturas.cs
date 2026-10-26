@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using JKCASH.Application.Interfaces;
+using JKCASH.Application.Excecoes;
 using JKCASH.Application.Servicos;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
@@ -186,9 +187,11 @@ public partial class UcFaturas : UserControl
     {
         if (_ocupado || _pagamentos is null) return;
         PagamentoFatura? salvo = null;
+        Guid? faturaTentativa = null;
         try
         {
             FaturaCartao fatura = FaturaSelecionada ?? throw new ArgumentException("Selecione uma fatura.");
+            faturaTentativa = fatura.Id;
             if (cmbContaPagamento.SelectedValue is not Guid contaId || cmbCategoriaPagamento.SelectedValue is not Guid categoriaId)
                 throw new ArgumentException("Selecione a conta e a categoria do pagamento.");
             decimal valor = numValorPagamento.Value;
@@ -199,6 +202,29 @@ public partial class UcFaturas : UserControl
             numValorPagamento.Value = 0m;
             await RecarregarCoreAsync(fatura.Id);
             if (!IsDisposed) lblStatusFaturas.Text = $"Pagamento de {salvo.Valor.ToString("C2", TabelaVisual.Cultura)} confirmado em {salvo.Data:dd/MM/yyyy}. Histórico, saldo da conta e limite atualizados.";
+        }
+        catch (ConflitoFinanceiroException erro) when (salvo is null)
+        {
+            Debug.WriteLine(erro);
+            if (IsDisposed) return;
+            try
+            {
+                await RecarregarCoreAsync(faturaTentativa);
+                if (!IsDisposed) lblStatusFaturas.Text = erro.Message +
+                    " Dados atualizados. Confira a fatura e informe o valor novamente.";
+            }
+            catch (Exception falhaConsulta)
+            {
+                Debug.WriteLine(falhaConsulta);
+                if (IsDisposed) return;
+                _dados = null;
+                dgvFaturas.DataSource = null;
+                dgvParcelasFatura.DataSource = null;
+                dgvPagamentosFatura.DataSource = null;
+                lblResumoFatura.Text = "Consulta indisponível.";
+                lblLimiteFatura.Text = "Atualize os dados para consultar o limite.";
+                lblStatusFaturas.Text = "O pagamento não foi confirmado. Use Atualizar dados antes de tentar novamente.";
+            }
         }
         catch (Exception erro)
         {

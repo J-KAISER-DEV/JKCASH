@@ -1,5 +1,6 @@
 using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
+using JKCASH.Application.Excecoes;
 using JKCASH.Domain.Enums;
 
 namespace JKCASH.Application.Servicos;
@@ -29,11 +30,13 @@ public sealed class PagamentoFaturaServico
     public PagamentoFatura Registrar(Guid faturaId, Guid contaId, decimal valor, Guid categoriaId)
     {
         FaturaCartao fatura = _faturas.BuscarPorId(faturaId)
-            ?? throw new ArgumentException("Fatura não encontrada.", nameof(faturaId));
+            ?? throw new ConflitoFinanceiroException("A fatura não está mais disponível. Atualize os dados.");
         CartaoCredito cartao = _cartoes.BuscarPorId(fatura.CartaoId)
-            ?? throw new ArgumentException("Cartão não encontrado.");
+            ?? throw new ConflitoFinanceiroException("O cartão não está mais disponível. Atualize os dados.");
         Conta conta = _contas.ListarTodas().SingleOrDefault(item => item.Id == contaId)
-            ?? throw new ArgumentException("Conta não encontrada.", nameof(contaId));
+            ?? throw new ConflitoFinanceiroException("A conta não está mais disponível. Atualize os dados.");
+        if (!conta.Ativa)
+            throw new ConflitoFinanceiroException("A conta pagadora foi desativada. Atualize e selecione uma conta ativa.");
         if (!_categorias.Existe(categoriaId))
             throw new ArgumentException("Categoria não cadastrada.", nameof(categoriaId));
 
@@ -48,15 +51,17 @@ public sealed class PagamentoFaturaServico
         if (valor > cartao.ValorUtilizado)
             throw new InvalidOperationException("O pagamento ultrapassa o valor utilizado do cartão.");
 
+        bool limiteLiberado = false;
         conta.Debitar(valor);
-        cartao.RegistrarPagamento(valor);
         try
         {
+            cartao.RegistrarPagamento(valor);
+            limiteLiberado = true;
             _faturas.RegistrarPagamento(fatura, atualizada, saida, conta, cartao);
         }
         catch
         {
-            cartao.RegistrarCompra(valor);
+            if (limiteLiberado) cartao.RegistrarCompra(valor);
             conta.Creditar(valor);
             throw;
         }

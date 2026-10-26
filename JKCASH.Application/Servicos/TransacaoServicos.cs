@@ -34,14 +34,13 @@ namespace JKCASH.Application.Servicos
             UrgenciaTransacao urgencia,
             string justificativa)
         {
+            ArgumentNullException.ThrowIfNull(conta);
             if(!_categorias.Existe(categoriaId))
             {
                 throw new ArgumentException(
                     "A categoria informada nao esta cadastrada",
                     nameof(categoriaId));
             }
-            ArgumentNullException.ThrowIfNull(conta);
-
             Transacao transacao = new(
                 conta.Id,
                 tipo,
