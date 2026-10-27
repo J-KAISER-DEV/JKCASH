@@ -1,0 +1,218 @@
+﻿namespace JKCASH.WinForms;
+
+partial class FrmInicial
+{
+    private System.ComponentModel.IContainer components = null;
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing) components?.Dispose();
+        base.Dispose(disposing);
+    }
+
+    private void InitializeComponent()
+    {
+        pnlCabecalho = new Panel();
+        lblTitulo = new Label();
+        lblSubtitulo = new Label();
+        tlpConteudo = new TableLayoutPanel();
+        tlpEstado = new TableLayoutPanel();
+        lblServidor = new Label();
+        lblEstadoServidor = new Label();
+        lblDadosLocais = new Label();
+        lblEstadoLocal = new Label();
+        lblUltimoEnvio = new Label();
+        lblEstadoEnvio = new Label();
+        lblUltimaRestauracao = new Label();
+        lblEstadoRestauracao = new Label();
+        tlpAcoes = new TableLayoutPanel();
+        btnVerificarConexao = new Button();
+        btnEnviarBackup = new Button();
+        btnRestaurarBackup = new Button();
+        lblOrientacao = new Label();
+        btnAbrirAplicativo = new Button();
+        btnHistorico = new Button();
+        btnReceberDadosSql = new Button();
+        pnlCabecalho.SuspendLayout();
+        tlpConteudo.SuspendLayout();
+        tlpEstado.SuspendLayout();
+        tlpAcoes.SuspendLayout();
+        SuspendLayout();
+
+        pnlCabecalho.BackColor = Color.FromArgb(20, 38, 61);
+        pnlCabecalho.Dock = DockStyle.Top;
+        pnlCabecalho.Height = 100;
+        pnlCabecalho.Controls.Add(lblTitulo);
+        pnlCabecalho.Controls.Add(lblSubtitulo);
+        lblTitulo.Text = "JKCASH";
+        lblTitulo.Font = new Font("Segoe UI", 22F, FontStyle.Bold);
+        lblTitulo.ForeColor = Color.White;
+        lblTitulo.Location = new Point(24, 12);
+        lblTitulo.Size = new Size(552, 42);
+        lblSubtitulo.Text = "Seus dados locais, com uma cópia no servidor.";
+        lblSubtitulo.ForeColor = Color.FromArgb(211, 222, 234);
+        lblSubtitulo.Location = new Point(26, 58);
+        lblSubtitulo.Size = new Size(548, 28);
+
+        tlpConteudo.Dock = DockStyle.Fill;
+        tlpConteudo.Padding = new Padding(24, 16, 24, 16);
+        tlpConteudo.ColumnCount = 1;
+        tlpConteudo.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        tlpConteudo.RowCount = 6;
+        tlpConteudo.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        tlpConteudo.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+        tlpConteudo.RowStyles.Add(new RowStyle(SizeType.Absolute, 44F));
+        tlpConteudo.RowStyles.Add(new RowStyle(SizeType.Absolute, 50F));
+        tlpConteudo.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+        tlpConteudo.RowStyles.Add(new RowStyle(SizeType.Absolute, 46F));
+        tlpConteudo.Controls.Add(tlpEstado, 0, 0);
+        tlpConteudo.Controls.Add(tlpAcoes, 0, 1);
+        tlpConteudo.Controls.Add(btnReceberDadosSql, 0, 2);
+        tlpConteudo.Controls.Add(lblOrientacao, 0, 3);
+        tlpConteudo.Controls.Add(btnHistorico, 0, 4);
+        tlpConteudo.Controls.Add(btnAbrirAplicativo, 0, 5);
+        btnReceberDadosSql.Name = "btnReceberDadosSql";
+        btnReceberDadosSql.Text = "Receber dados existentes do SQL Server";
+        btnReceberDadosSql.Dock = DockStyle.Fill;
+        btnReceberDadosSql.Margin = new Padding(0, 0, 0, 6);
+        btnReceberDadosSql.Enabled = false;
+        btnHistorico.Name = "btnHistorico";
+        btnHistorico.Text = "Ver histórico de envios e restaurações";
+        btnHistorico.Dock = DockStyle.Fill;
+        btnHistorico.Margin = new Padding(0, 0, 0, 4);
+        btnHistorico.Enabled = false;
+
+        tlpEstado.BackColor = Color.White;
+        tlpEstado.Dock = DockStyle.Fill;
+        tlpEstado.Margin = new Padding(0, 0, 0, 12);
+        tlpEstado.Padding = new Padding(12, 6, 12, 6);
+        tlpEstado.ColumnCount = 2;
+        tlpEstado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 43F));
+        tlpEstado.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 57F));
+        tlpEstado.RowCount = 4;
+        tlpEstado.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+        tlpEstado.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+        tlpEstado.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+        tlpEstado.RowStyles.Add(new RowStyle(SizeType.Percent, 25F));
+        tlpEstado.Controls.Add(lblServidor, 0, 0);
+        tlpEstado.Controls.Add(lblEstadoServidor, 1, 0);
+        tlpEstado.Controls.Add(lblDadosLocais, 0, 1);
+        tlpEstado.Controls.Add(lblEstadoLocal, 1, 1);
+        tlpEstado.Controls.Add(lblUltimoEnvio, 0, 2);
+        tlpEstado.Controls.Add(lblEstadoEnvio, 1, 2);
+        tlpEstado.Controls.Add(lblUltimaRestauracao, 0, 3);
+        tlpEstado.Controls.Add(lblEstadoRestauracao, 1, 3);
+
+        lblServidor.Text = "Servidor";
+        lblDadosLocais.Text = "Armazenamento local";
+        lblUltimoEnvio.Text = "Último backup confirmado";
+        lblUltimaRestauracao.Text = "Última restauração";
+        lblEstadoServidor.Text = "Conexão não verificada";
+        lblEstadoLocal.Text = "SQLite — usado no dia a dia";
+        lblEstadoEnvio.Text = "Histórico ainda não disponível";
+        lblEstadoRestauracao.Text = "Histórico ainda não disponível";
+        lblServidor.Dock = DockStyle.Fill;
+        lblDadosLocais.Dock = DockStyle.Fill;
+        lblUltimoEnvio.Dock = DockStyle.Fill;
+        lblUltimaRestauracao.Dock = DockStyle.Fill;
+        lblEstadoServidor.Dock = DockStyle.Fill;
+        lblEstadoLocal.Dock = DockStyle.Fill;
+        lblEstadoEnvio.Dock = DockStyle.Fill;
+        lblEstadoRestauracao.Dock = DockStyle.Fill;
+        lblServidor.TextAlign = ContentAlignment.MiddleLeft;
+        lblDadosLocais.TextAlign = ContentAlignment.MiddleLeft;
+        lblUltimoEnvio.TextAlign = ContentAlignment.MiddleLeft;
+        lblUltimaRestauracao.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstadoServidor.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstadoLocal.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstadoEnvio.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstadoRestauracao.TextAlign = ContentAlignment.MiddleLeft;
+        lblEstadoServidor.ForeColor = Color.FromArgb(105, 122, 143);
+        lblEstadoEnvio.ForeColor = Color.FromArgb(105, 122, 143);
+        lblEstadoRestauracao.ForeColor = Color.FromArgb(105, 122, 143);
+
+        tlpAcoes.Dock = DockStyle.Fill;
+        tlpAcoes.Margin = new Padding(0);
+        tlpAcoes.ColumnCount = 3;
+        tlpAcoes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 34F));
+        tlpAcoes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33F));
+        tlpAcoes.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33F));
+        tlpAcoes.RowCount = 1;
+        tlpAcoes.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+        tlpAcoes.Controls.Add(btnVerificarConexao, 0, 0);
+        tlpAcoes.Controls.Add(btnEnviarBackup, 1, 0);
+        tlpAcoes.Controls.Add(btnRestaurarBackup, 2, 0);
+        btnVerificarConexao.Text = "Verificar conexão";
+        btnEnviarBackup.Text = "Enviar backup";
+        btnRestaurarBackup.Text = "Restaurar backup";
+        btnVerificarConexao.Name = "btnVerificarConexao";
+        btnEnviarBackup.Name = "btnEnviarBackup";
+        btnRestaurarBackup.Name = "btnRestaurarBackup";
+        btnVerificarConexao.Dock = DockStyle.Fill;
+        btnEnviarBackup.Dock = DockStyle.Fill;
+        btnRestaurarBackup.Dock = DockStyle.Fill;
+        btnVerificarConexao.Margin = new Padding(0, 0, 6, 8);
+        btnEnviarBackup.Margin = new Padding(3, 0, 3, 8);
+        btnRestaurarBackup.Margin = new Padding(6, 0, 0, 8);
+        btnVerificarConexao.Enabled = false;
+        btnEnviarBackup.Enabled = false;
+        btnRestaurarBackup.Enabled = false;
+
+        lblOrientacao.Text = "Abra o aplicativo usando os dados locais, mesmo sem o servidor.\r\nEnvios e restaurações só acontecem quando você solicitar.";
+        lblOrientacao.Dock = DockStyle.Fill;
+        lblOrientacao.Margin = new Padding(0);
+        lblOrientacao.ForeColor = Color.FromArgb(105, 122, 143);
+        lblOrientacao.TextAlign = ContentAlignment.MiddleLeft;
+        btnAbrirAplicativo.Name = "btnAbrirAplicativo";
+        btnAbrirAplicativo.Text = "Abrir aplicativo";
+        btnAbrirAplicativo.Dock = DockStyle.Fill;
+        btnAbrirAplicativo.Margin = new Padding(0, 4, 0, 0);
+        btnAbrirAplicativo.BackColor = Color.FromArgb(22, 134, 92);
+        btnAbrirAplicativo.ForeColor = Color.White;
+        btnAbrirAplicativo.FlatStyle = FlatStyle.Flat;
+        btnAbrirAplicativo.FlatAppearance.BorderSize = 0;
+        btnAbrirAplicativo.DialogResult = DialogResult.OK;
+
+        AcceptButton = btnAbrirAplicativo;
+        AutoScaleDimensions = new SizeF(7F, 15F);
+        AutoScaleMode = AutoScaleMode.Font;
+        BackColor = Color.FromArgb(244, 246, 248);
+        ClientSize = new Size(600, 550);
+        Controls.Add(tlpConteudo);
+        Controls.Add(pnlCabecalho);
+        Font = new Font("Segoe UI", 9F);
+        ForeColor = Color.FromArgb(22, 36, 55);
+        FormBorderStyle = FormBorderStyle.FixedDialog;
+        MaximizeBox = false;
+        Name = "FrmInicial";
+        StartPosition = FormStartPosition.CenterScreen;
+        Text = "JKCASH — Inicialização";
+        pnlCabecalho.ResumeLayout(false);
+        tlpConteudo.ResumeLayout(false);
+        tlpEstado.ResumeLayout(false);
+        tlpAcoes.ResumeLayout(false);
+        ResumeLayout(false);
+    }
+
+    private Panel pnlCabecalho;
+    private Label lblTitulo;
+    private Label lblSubtitulo;
+    private TableLayoutPanel tlpConteudo;
+    private TableLayoutPanel tlpEstado;
+    private Label lblServidor;
+    private Label lblEstadoServidor;
+    private Label lblDadosLocais;
+    private Label lblEstadoLocal;
+    private Label lblUltimoEnvio;
+    private Label lblEstadoEnvio;
+    private Label lblUltimaRestauracao;
+    private Label lblEstadoRestauracao;
+    private TableLayoutPanel tlpAcoes;
+    private Button btnVerificarConexao;
+    private Button btnEnviarBackup;
+    private Button btnRestaurarBackup;
+    private Label lblOrientacao;
+    private Button btnAbrirAplicativo;
+    private Button btnHistorico;
+    private Button btnReceberDadosSql;
+}

@@ -361,3 +361,8 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# Código de backup da aplicação (a regra Backup*/ acima ignora pastas de ferramentas).
+!/JKCASH.Infrastructure/Backup/
+/JKCASH.Infrastructure/Backup/*
+!/JKCASH.Infrastructure/Backup/*.cs

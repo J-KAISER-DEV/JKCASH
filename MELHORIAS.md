@@ -14,7 +14,7 @@ Ordem proposta de trabalho, sem datas de entrega estimadas. O Windows Forms já 
 | 4. Consultas eficientes | Separar consultas do dashboard da apresentação, limitar o histórico carregado e revisar filtros de período e prévias de exclusão | DashboardConsulta integrada. Extrato paginado em 50 itens, totais do período calculados no banco e filtro por intervalo; 27 verificações aprovadas em SQLite temporário e controles WinForms. Faltam conferir dashboard preenchido, medir desempenho e otimizar prévias de exclusão |
 | 5. Responsividade e tratamento de falhas | Padronizar carregamento e gravação sem bloquear a interface e evitar cliques repetidos | Implementada no Windows Forms: operações em segundo plano, bloqueio de reentrada, atualização após falhas e retorno seguro após descarte; verificações com repositórios simulados concluídas. Detalhes em docs/etapa-5-responsividade.md |
 | 6. Melhorias funcionais | Confirmação com resumo antes de registrar e avaliação da necessidade apenas nas saídas | Itens 001 e 002 pendentes |
-| 7. API | Reutilizar serviços para expor operações do JKCASH, conectar SQL Server e planejar autenticação | Projeto criado; ainda com o exemplo WeatherForecast |
+| 7. API e backups | Guardar e recuperar cópias completas do SQLite pelo SQL Server | Tela inicial, conexão, envio, seleção, histórico, restauração e recebimento explícito das tabelas existentes do SQL Server implementados. API restrita a esta máquina; autenticação/acesso em rede pendentes. Detalhes em docs/backup-api.md |
 | 8. Sincronização | Pendências persistentes, envio e recebimento sem duplicação e resolução de conflitos | Adiada; não há sincronização implementada |
 
 Na etapa 2 não foi introduzido um contêiner de injeção: a fábrica faz a composição manual. Cada operação de repositório continua criando e liberando seu contexto. Mudanças nesta ordem serão registradas conforme as prioridades do usuário.
@@ -136,3 +136,16 @@ Esses critérios orientam a conclusão da implementação. O progresso efetivo e
 - **Fora do escopo atual:** servidor central, API, fila de envio, recebimento de alterações, controle de duplicações, propagação de exclusões e resolução de conflitos.
 - **Ponto de atenção futuro:** os dados locais de duas máquinas não se atualizam entre si automaticamente. A solução de sincronização será planejada separadamente antes de disponibilizar esse comportamento.
 - **Decisão para o futuro:** avaliar como integrar os dados locais acumulados até lá. Não existe promessa de que poderão ser enviados e mesclados sem uma estratégia de migração e conciliação.
+
+## 005 — Tela inicial e backup pela API
+
+- **Situação:** implementado para uso nesta máquina.
+- **Uso diário:** permanece no SQLite, inclusive offline.
+- **Envio:** snapshot consistente do banco completo, confirmação no SQL Server e histórico local. Cada envio manual cria uma cópia independente.
+- **Restauração:** escolha entre os 100 backups mais recentes, download e conferência antes da confirmação; preserva cópia do banco anterior e substitui o arquivo somente após preparar e validar a nova base.
+- **Proteções:** hash, integridade, vínculos, versão de migrações, limite de 16 MiB, reenvio idempotente pelo mesmo Id e bloqueio de instâncias concorrentes do Windows Forms.
+- **Importação SQL:** botão na tela inicial para ler as oito tabelas existentes do SQL Server, baixar uma cópia consistente e substituir o SQLite apenas após confirmação, preservando a base anterior. Não requer backup prévio; não altera os registros de origem.
+- **Limites:** API somente em loopback; autenticação e uso por outra máquina continuam pendentes. Não existe sincronização nem importação automática.
+- **Verificação:** 16 conferências aprovadas com SQLite e SQL Server temporários, incluindo ciclo completo de envio e restauração, preservação de Id/centavos, recusa de conteúdo adulterado e reenvio sem duplicação. O banco SQL temporário foi removido; os bancos reais não foram destinos da verificação.
+
+Guia de uso e organização: [Backup pela API](docs/backup-api.md).

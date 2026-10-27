@@ -7,6 +7,7 @@ using JKCASH.Infrastructure.Repositorios;
 using JKCASH.Infrastructure.Persistencia;
 using JKCASH.Infrastructure.Consultas;
 using JKCASH.WinForms.Telas;
+using JKCASH.Infrastructure.Integracoes.Api;
 namespace JKCASH.WinForms.Inicializacao;
 
 public static class FabricaTelas
@@ -18,6 +19,26 @@ public static class FabricaTelas
 
         return new UcCategorias(repositorio);
     }
+
+    private static readonly HttpClient HttpApi = new()
+    {
+        BaseAddress = new Uri("https://localhost:7068/"),
+        Timeout = TimeSpan.FromSeconds(60)
+    };
+
+    private static ContasApiCliente CriarClienteContas()
+    {
+        return new ContasApiCliente(HttpApi);
+    }
+
+    public static FrmInicial CriarInicial()
+    {
+        return new FrmInicial(new ConexaoApiCliente(HttpApi), new BackupApiCliente(HttpApi),
+            new JKCASH.Infrastructure.Backup.BackupLocal(ConexaoLocal.CaminhoBanco),
+            new JKCASH.Infrastructure.Backup.HistoricoBackup(
+                Path.Combine(ConexaoLocal.PastaDados, "historico-backups.json")));
+    }
+
 
     public static UcContas CriarContas()
     {

@@ -18,6 +18,12 @@
     <Compile Update="FrmPrincipal.Visual.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="FrmInicial.Backups.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="FrmInicial.Importacao.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <EmbeddedResource Remove="FrmPrincipal.Visual.resx" />
     <None Include="FrmPrincipal.Visual.resx" />
     <Compile Update="Telas\UcTransacoes.Extrato.cs">
