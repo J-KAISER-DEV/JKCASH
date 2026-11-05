@@ -42,14 +42,14 @@ public partial class FrmPrincipal
 
         FlowLayoutPanel navegacao = new()
         {
-            Name = "pnlNavegacao", Dock = DockStyle.Top, Height = 384,
+            Name = "pnlNavegacao", Dock = DockStyle.Fill, AutoScroll = true,
             FlowDirection = FlowDirection.TopDown, WrapContents = false,
             Padding = new Padding(9, 0, 9, 0)
         };
         var opcoes = new[]
         {
             ("Dashboard", "\uE80F"), ("Contas", "contas"),
-            ("Transações", "\uE8AB"), ("Cartões", "\uE8C7"),
+            ("Transações", "\uE8AB"), ("Extrato", "\uE8A5"), ("Cartões", "\uE8C7"),
             ("Faturas", "\uE8A5"), ("Categorias", "\uE8EC")
         };
         foreach (var (tela, simbolo) in opcoes)
@@ -124,6 +124,14 @@ public partial class FrmPrincipal
             return;
         }
 
+        if (tela == "Extrato")
+        {
+            UcExtrato extrato = FabricaTelas.CriarExtrato();
+            extrato.Dock = DockStyle.Fill;
+            pnlConteudo.Controls.Add(extrato);
+            return;
+        }
+
         if (tela == "Contas")
         {
             UcContas contas = FabricaTelas.CriarContas();
@@ -136,6 +144,7 @@ public partial class FrmPrincipal
         {
             UcDashboard dashboard = FabricaTelas.CriarDashboard();
             dashboard.AbrirTransacoes += (_, _) => AbrirTela("Transações");
+            dashboard.AbrirExtrato += (_, _) => AbrirTela("Extrato");
             dashboard.AbrirFaturas += (_, _) => AbrirTela("Faturas");
             pnlConteudo.Controls.Add(dashboard);
             return;

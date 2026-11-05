@@ -10,6 +10,7 @@ namespace JKCASH.WinForms.Telas;
 public sealed class UcDashboard : UserControl
 {
     public event EventHandler? AbrirTransacoes;
+    public event EventHandler? AbrirExtrato;
     public event EventHandler? AbrirFaturas;
     private readonly IDashboardConsulta? _consulta;
     private readonly ComboBox _cmbContas = new() { Name = "cmbContaDashboard", DropDownStyle = ComboBoxStyle.DropDownList, Width = 160 };
@@ -292,7 +293,7 @@ public sealed class UcDashboard : UserControl
         Button extrato = EstiloVisual.Botao("Ver extrato");
         extrato.Width = 110;
         extrato.Dock = DockStyle.Right;
-        extrato.Click += (_, _) => AbrirTransacoes?.Invoke(this, EventArgs.Empty);
+        extrato.Click += (_, _) => AbrirExtrato?.Invoke(this, EventArgs.Empty);
         Label titulo = EstiloVisual.Rotulo("Últimas movimentações do mês", 15, true);
         cabecalho.Controls.Add(titulo);
         cabecalho.Controls.Add(extrato);

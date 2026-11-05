@@ -49,13 +49,14 @@
             dgvContas = new DataGridView();
             tabContas = new TabControl();
             tabCadastroContas = new TabPage();
-            tabTransferirContas = new TabPage();
             pnlCadastroConta.SuspendLayout();
             tlpDadosConta.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)numSaldoInicial).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numLimiteChequeEspecial).BeginInit();
             pnListaContas.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)dgvContas).BeginInit();
+            tabContas.SuspendLayout();
+            tabCadastroContas.SuspendLayout();
             SuspendLayout();
             // 
             // lbTituloContas
@@ -149,7 +150,7 @@
             // lblNomeBanco
             // 
             lblNomeBanco.AutoSize = true;
-            lblNomeBanco.Location = new Point(458, 0);
+            lblNomeBanco.Location = new Point(433, 0);
             lblNomeBanco.Name = "lblNomeBanco";
             lblNomeBanco.Size = new Size(46, 19);
             lblNomeBanco.TabIndex = 1;
@@ -161,16 +162,16 @@
             txtNomeConta.Location = new Point(3, 27);
             txtNomeConta.MaxLength = 100;
             txtNomeConta.Name = "txtNomeConta";
-            txtNomeConta.Size = new Size(449, 25);
+            txtNomeConta.Size = new Size(424, 25);
             txtNomeConta.TabIndex = 2;
             // 
             // txtBancoConta
             // 
             txtBancoConta.Dock = DockStyle.Top;
-            txtBancoConta.Location = new Point(458, 27);
+            txtBancoConta.Location = new Point(433, 27);
             txtBancoConta.MaxLength = 100;
             txtBancoConta.Name = "txtBancoConta";
-            txtBancoConta.Size = new Size(449, 25);
+            txtBancoConta.Size = new Size(424, 25);
             txtBancoConta.TabIndex = 3;
             // 
             // lblTipoConta
@@ -185,7 +186,7 @@
             // lblDestinacaoConta
             // 
             lblDestinacaoConta.AutoSize = true;
-            lblDestinacaoConta.Location = new Point(458, 72);
+            lblDestinacaoConta.Location = new Point(433, 72);
             lblDestinacaoConta.Name = "lblDestinacaoConta";
             lblDestinacaoConta.Size = new Size(76, 19);
             lblDestinacaoConta.TabIndex = 5;
@@ -198,7 +199,7 @@
             cmbTipoConta.FormattingEnabled = true;
             cmbTipoConta.Location = new Point(3, 99);
             cmbTipoConta.Name = "cmbTipoConta";
-            cmbTipoConta.Size = new Size(449, 25);
+            cmbTipoConta.Size = new Size(424, 25);
             cmbTipoConta.TabIndex = 6;
             // 
             // cmbDestinacaoConta
@@ -206,9 +207,9 @@
             cmbDestinacaoConta.Dock = DockStyle.Top;
             cmbDestinacaoConta.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbDestinacaoConta.FormattingEnabled = true;
-            cmbDestinacaoConta.Location = new Point(458, 99);
+            cmbDestinacaoConta.Location = new Point(433, 99);
             cmbDestinacaoConta.Name = "cmbDestinacaoConta";
-            cmbDestinacaoConta.Size = new Size(449, 25);
+            cmbDestinacaoConta.Size = new Size(424, 25);
             cmbDestinacaoConta.TabIndex = 7;
             // 
             // lblSadoInicial
@@ -223,7 +224,7 @@
             // lblLimiteChequeEspecial
             // 
             lblLimiteChequeEspecial.AutoSize = true;
-            lblLimiteChequeEspecial.Location = new Point(458, 144);
+            lblLimiteChequeEspecial.Location = new Point(433, 144);
             lblLimiteChequeEspecial.Name = "lblLimiteChequeEspecial";
             lblLimiteChequeEspecial.Size = new Size(193, 19);
             lblLimiteChequeEspecial.TabIndex = 9;
@@ -237,7 +238,7 @@
             numSaldoInicial.Maximum = new decimal(new int[] { 10000000, 0, 0, 0 });
             numSaldoInicial.Minimum = new decimal(new int[] { 10000000, 0, 0, int.MinValue });
             numSaldoInicial.Name = "numSaldoInicial";
-            numSaldoInicial.Size = new Size(449, 25);
+            numSaldoInicial.Size = new Size(424, 25);
             numSaldoInicial.TabIndex = 10;
             numSaldoInicial.ThousandsSeparator = true;
             // 
@@ -245,10 +246,10 @@
             // 
             numLimiteChequeEspecial.DecimalPlaces = 2;
             numLimiteChequeEspecial.Dock = DockStyle.Top;
-            numLimiteChequeEspecial.Location = new Point(458, 171);
+            numLimiteChequeEspecial.Location = new Point(433, 171);
             numLimiteChequeEspecial.Maximum = new decimal(new int[] { 10000000, 0, 0, 0 });
             numLimiteChequeEspecial.Name = "numLimiteChequeEspecial";
-            numLimiteChequeEspecial.Size = new Size(449, 25);
+            numLimiteChequeEspecial.Size = new Size(424, 25);
             numLimiteChequeEspecial.TabIndex = 11;
             numLimiteChequeEspecial.ThousandsSeparator = true;
             // 
@@ -282,31 +283,29 @@
             dgvContas.TabIndex = 0;
             // 
             // tabContas
-            tabContas.Name = "tabContas";
-            tabContas.Location = new Point(24, 120);
-            tabContas.Size = new Size(950, 750);
+            // 
             tabContas.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+            tabContas.Controls.Add(tabCadastroContas);
+            tabContas.Location = new Point(24, 120);
+            tabContas.Name = "tabContas";
             tabContas.SelectedIndex = 0;
+            tabContas.Size = new Size(950, 750);
             tabContas.TabIndex = 2;
+            // 
             // tabCadastroContas
-            tabCadastroContas.Name = "tabCadastroContas";
-            tabCadastroContas.Text = "Contas cadastradas";
-            tabCadastroContas.BackColor = Color.White;
-            tabCadastroContas.Padding = new Padding(20);
-            tabCadastroContas.Size = new Size(942, 720);
+            // 
             tabCadastroContas.AutoScroll = true;
             tabCadastroContas.AutoScrollMinSize = new Size(0, 680);
-            // tabTransferirContas
-            tabTransferirContas.Name = "tabTransferirContas";
-            tabTransferirContas.Text = "Transferir entre contas";
-            tabTransferirContas.BackColor = Color.White;
-            tabTransferirContas.Padding = new Padding(20);
-            tabTransferirContas.Size = new Size(942, 720);
-            tabContas.Controls.Add(tabCadastroContas);
-            tabContas.Controls.Add(tabTransferirContas);
+            tabCadastroContas.BackColor = Color.White;
             tabCadastroContas.Controls.Add(pnlCadastroConta);
             tabCadastroContas.Controls.Add(pnListaContas);
-            //
+            tabCadastroContas.Location = new Point(4, 26);
+            tabCadastroContas.Name = "tabCadastroContas";
+            tabCadastroContas.Padding = new Padding(20);
+            tabCadastroContas.Size = new Size(942, 720);
+            tabCadastroContas.TabIndex = 0;
+            tabCadastroContas.Text = "Cadastrar Conta";
+            // 
             // UcContas
             // 
             AutoScaleDimensions = new SizeF(7F, 17F);
@@ -325,6 +324,8 @@
             ((System.ComponentModel.ISupportInitialize)numLimiteChequeEspecial).EndInit();
             pnListaContas.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)dgvContas).EndInit();
+            tabContas.ResumeLayout(false);
+            tabCadastroContas.ResumeLayout(false);
             ResumeLayout(false);
             PerformLayout();
         }
@@ -352,6 +353,5 @@
         private DataGridView dgvContas;
         private TabControl tabContas;
         private TabPage tabCadastroContas;
-        private TabPage tabTransferirContas;
     }
 }

@@ -1,14 +1,54 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Globalization;
 using JKCASH.Application.Modelos;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
 using JKCASH.WinForms.Visual;
 
 namespace JKCASH.WinForms.Telas;
 
-public partial class UcTransacoes
+public partial class UcExtrato : UserControl
 {
+    private readonly IContaRepositorio? _contas;
+    private readonly IExtratoConsulta? _extrato;
+    private readonly IRelatorioGastosConsulta? _relatorioGastos;
+    private readonly Label _statusGastos;
+    private bool _gastosEmOrdemCrescente;
+
+    public UcExtrato()
+    {
+        InitializeComponent();
+        _statusGastos = new Label
+        {
+            Dock = DockStyle.Top,
+            ForeColor = EstiloVisual.Secundario,
+            Height = 32,
+            Text = "Escolha os filtros e clique em Consultar gastos.",
+            TextAlign = ContentAlignment.MiddleLeft
+        };
+        tabRelatorioGastos.Controls.Add(_statusGastos);
+        _statusGastos.SendToBack();
+        tabExtrato.SelectedIndexChanged += (_, _) => AtualizarOrigemGastos();
+        ConfigurarExtrato();
+        ConfigurarTabelaGastos();
+        ConfigurarFiltrosGastos();
+        ConfigurarGraficoGastos();
+        ConfigurarSelecaoCartoesGastos();
+    }
+
+    public UcExtrato(IContaRepositorio contas, IExtratoConsulta extrato,
+        IRelatorioGastosConsulta relatorioGastos, ICategoriaRepositorio categorias,
+        ICartaoCreditoRepositorio cartoes) : this()
+    {
+        _contas = contas ?? throw new ArgumentNullException(nameof(contas));
+        _extrato = extrato ?? throw new ArgumentNullException(nameof(extrato));
+        _relatorioGastos = relatorioGastos ?? throw new ArgumentNullException(nameof(relatorioGastos));
+        _categoriasGastos = categorias ?? throw new ArgumentNullException(nameof(categorias));
+        _cartoesGastos = cartoes ?? throw new ArgumentNullException(nameof(cartoes));
+        Load += async (_, _) => await CarregarContasDoExtratoAsync();
+    }
+
     private bool _consultandoExtrato;
     private bool _contasExtratoCarregadas;
     private FiltroExtrato? _filtroAplicado;
@@ -17,7 +57,44 @@ public partial class UcTransacoes
     private Label _situacaoPagina = null!;
     private static readonly CultureInfo CulturaExtrato = CultureInfo.GetCultureInfo("pt-BR");
 
-    // O Designer guarda os controles; este arquivo concentra o comportamento do extrato.
+    // O Designer guarda os controles. As consultas são executadas fora da thread da interface.
+
+    private void ConfigurarTabelaGastos()
+    {
+        TabelaVisual.Configurar(
+            dgvGastosPorCategoria,
+            (nameof(GastoPorCategoria.Categoria), "Categoria", "", 50),
+            (nameof(GastoPorCategoria.Quantidade), "Lançamentos", "N0", 20),
+            (nameof(GastoPorCategoria.Total), "Total gasto", "C2", 30));
+
+        DataGridViewColumn colunaTotal = dgvGastosPorCategoria.Columns[nameof(GastoPorCategoria.Total)]!;
+        colunaTotal.SortMode = DataGridViewColumnSortMode.Programmatic;
+        colunaTotal.HeaderCell.ToolTipText = "Clique para alternar a ordem dos totais.";
+        colunaTotal.HeaderCell.SortGlyphDirection = SortOrder.Descending;
+        dgvGastosPorCategoria.ColumnHeaderMouseClick += (_, e) =>
+        {
+            if (e.Button != MouseButtons.Left || e.ColumnIndex != colunaTotal.Index ||
+                dgvGastosPorCategoria.DataSource is not List<GastoPorCategoria> gastos)
+                return;
+
+            _gastosEmOrdemCrescente = !_gastosEmOrdemCrescente;
+            ExibirGastosOrdenados(gastos);
+        };
+    }
+
+    private void ExibirGastosOrdenados(IReadOnlyList<GastoPorCategoria> gastos)
+    {
+        var ordenados = _gastosEmOrdemCrescente
+            ? gastos.OrderBy(g => g.Total)
+            : gastos.OrderByDescending(g => g.Total);
+
+        var resultado = ordenados.ThenBy(g => g.Categoria).ThenBy(g => g.CategoriaId).ToList();
+        dgvGastosPorCategoria.DataSource = resultado;
+        ExibirGraficoGastos(resultado);
+        dgvGastosPorCategoria.Columns[nameof(GastoPorCategoria.Total)]!.HeaderCell.SortGlyphDirection =
+            _gastosEmOrdemCrescente ? SortOrder.Ascending : SortOrder.Descending;
+    }
+
     private void ConfigurarExtrato()
     {
         dtpDataInicialExtrato.Value = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -79,12 +156,6 @@ public partial class UcTransacoes
                 e.CellStyle.SelectionForeColor = cor;
             }
         };
-        tabTransacoes.SelectedIndexChanged += async (_, _) =>
-        {
-            // Voltar à aba também atualiza a consulta após registrar uma movimentação.
-            if (tabTransacoes.SelectedTab == tabExtratoTransacoes && _contasExtratoCarregadas)
-                await ConsultarExtratoAsync();
-        };
     }
 
     private void ConfigurarPaginacao()
@@ -115,6 +186,7 @@ public partial class UcTransacoes
     {
         if (_consultandoExtrato || IsDisposed || Disposing) return;
         LimparResultadoExtrato();
+        InvalidarFiltroGastos();
         MostrarStatusExtrato("Filtros alterados. Clique em Consultar extrato para aplicar.");
     }
 
@@ -152,6 +224,17 @@ public partial class UcTransacoes
             _contasExtratoCarregadas = contas.Count > 0;
             MostrarStatusExtrato(contas.Count == 0 ? "Nenhuma conta cadastrada para consultar."
                 : "Escolha o período e clique em Consultar extrato.");
+            try
+            {
+                await CarregarCategoriasGastosAsync();
+                await CarregarCartoesGastosAsync();
+            }
+            catch (Exception erro)
+            {
+                Debug.WriteLine(erro);
+                if (!IsDisposed && !Disposing)
+                    MostrarStatusGastos("Não foi possível carregar todos os filtros. Clique em Consultar gastos para tentar novamente.", true);
+            }
         }
         catch (Exception erro)
         {
@@ -167,15 +250,15 @@ public partial class UcTransacoes
         {
             if (!IsDisposed) DefinirConsultaEmAndamento(false);
         }
-        if (!IsDisposed && _contasExtratoCarregadas && tabTransacoes.SelectedTab == tabExtratoTransacoes)
+        if (!IsDisposed && _contasExtratoCarregadas)
             await ConsultarExtratoAsync();
     }
 
     private async Task ConsultarExtratoAsync()
     {
         if (_extrato is null ||
-            _consultandoExtrato || _registrando || IsDisposed || Disposing) return;
-        LimparResultadoExtrato();
+            _consultandoExtrato || IsDisposed || Disposing) return;
+        bool exibirGastos = tabExtrato.SelectedTab == tabRelatorioGastos;
         try
         {
             DateTime inicio = dtpDataInicialExtrato.Value.Date;
@@ -183,42 +266,109 @@ public partial class UcTransacoes
             if (inicio > fim)
                 throw new ArgumentException("A data inicial não pode ser posterior à data final.");
 
+            if (ConsultarComprasNoCartao)
+            {
+                if (exibirGastos)
+                    await ConsultarGastosAsync(inicio, fim, comprasNoCartao: true);
+                else
+                    await ConsultarPaginaExtratoAsync(new FiltroExtrato(LerCartoesGastos(), inicio, fim, true), 1);
+                return;
+            }
+
             var selecionadas = chkTodasContasExtrato.Checked
                 ? clbContasExtrato.Items.Cast<OpcaoContaExtrato>().ToList()
                 : clbContasExtrato.CheckedItems.Cast<OpcaoContaExtrato>().ToList();
             if (selecionadas.Count == 0)
                 throw new ArgumentException("Marque pelo menos uma conta ou selecione Todas as contas.");
             Guid[] ids = selecionadas.Select(conta => conta.Id).Distinct().ToArray();
-            await ConsultarPaginaExtratoAsync(new FiltroExtrato(ids, inicio, fim), 1);
+            var filtro = new FiltroExtrato(ids, inicio, fim);
+            if (exibirGastos)
+                await ConsultarGastosAsync(filtro.Inicio, filtro.Fim, comprasNoCartao: false, filtro.Origens);
+            else
+                await ConsultarPaginaExtratoAsync(filtro, 1);
         }
         catch (Exception erro)
         {
-            if (!IsDisposed) MostrarErroExtrato(erro);
+            if (IsDisposed || Disposing) return;
+            if (exibirGastos)
+            {
+                Debug.WriteLine(erro);
+                MostrarStatusGastos(erro is ArgumentException ? erro.Message
+                    : "Não foi possível consultar os gastos. Tente novamente.", true);
+            }
+            else
+            {
+                MostrarErroExtrato(erro);
+            }
         }
+    }
+
+    private async Task ConsultarGastosAsync(DateTime inicio, DateTime fim,
+        bool comprasNoCartao, Guid[]? contas = null)
+    {
+        if (_relatorioGastos is null || _consultandoExtrato || IsDisposed || Disposing)
+            return;
+
+        DefinirConsultaEmAndamento(true);
+        LimparGastos();
+        MostrarStatusGastos("Consultando os gastos do período…");
+
+        try
+        {
+            await CarregarCategoriasGastosAsync();
+            if (comprasNoCartao && !IsDisposed && !Disposing) await CarregarCartoesGastosAsync();
+            if (IsDisposed || Disposing) return;
+
+            FiltrosRelatorioGastos filtrosGastos = LerFiltrosGastos();
+            Guid[] ids = comprasNoCartao ? LerCartoesGastos() : contas!;
+            var gastos = await Task.Run(() => comprasNoCartao
+                ? _relatorioGastos.ConsultarComprasPorCategoria(ids, inicio, fim, filtrosGastos)
+                : _relatorioGastos.ConsultarPorCategoria(ids, inicio, fim, filtrosGastos));
+            if (IsDisposed || Disposing) return;
+
+            ExibirGastosOrdenados(gastos);
+            MostrarStatusGastos(gastos.Count == 0 ? "Nenhuma despesa corresponde aos filtros."
+                : $"{gastos.Count} categoria(s)  |  Total gasto: {Moeda(gastos.Sum(g => g.Total))}");
+        }
+        finally
+        {
+            if (!IsDisposed && !Disposing) DefinirConsultaEmAndamento(false);
+        }
+    }
+
+    private void MostrarStatusGastos(string mensagem, bool erro = false)
+    {
+        _statusGastos.Text = mensagem;
+        _statusGastos.ForeColor = erro ? EstiloVisual.Vermelho : EstiloVisual.Secundario;
     }
 
     private async Task ConsultarPaginaExtratoAsync(FiltroExtrato filtro, int pagina)
     {
-        if (_extrato is null || _consultandoExtrato || _registrando || IsDisposed || Disposing) return;
+        if (_extrato is null || _consultandoExtrato || IsDisposed || Disposing) return;
         DefinirConsultaEmAndamento(true);
         LimparResultadoExtrato();
         MostrarStatusExtrato("Consultando movimentações e totais do período…");
         try
         {
             ExtratoPagina resultado = await Task.Run(() =>
-                _extrato.Consultar(filtro.Contas, filtro.Inicio, filtro.Fim, pagina));
+                filtro.ComprasNoCartao
+                    ? _extrato.ConsultarCompras(filtro.Origens, filtro.Inicio, filtro.Fim, pagina)
+                    : _extrato.Consultar(filtro.Origens, filtro.Inicio, filtro.Fim, pagina));
             if (IsDisposed || Disposing) return;
             _filtroAplicado = filtro;
             _paginaExtrato = resultado.Pagina;
             _totalPaginasExtrato = resultado.TotalPaginas;
             dgvExtrato.DataSource = resultado.Itens.ToList();
             ExtratoTotais totais = resultado.Totais;
-            lblTotaisExtrato.Text = $"Entradas: {Moeda(totais.Entradas)}   |   Saídas: {Moeda(totais.Saidas)}   |   Resultado: {Moeda(totais.Entradas - totais.Saidas)}"
+            lblTotaisExtrato.Text = filtro.ComprasNoCartao
+                ? $"Total das compras: {Moeda(totais.Saidas)}"+ Environment.NewLine
+                    + "O valor integral de cada compra entra no período da compra."
+                : $"Entradas: {Moeda(totais.Entradas)}   |   Saídas: {Moeda(totais.Saidas)}   |   Resultado: {Moeda(totais.Entradas - totais.Saidas)}"
                 + Environment.NewLine + $"Transferências recebidas: {Moeda(totais.TransferenciasRecebidas)}   |   Enviadas: {Moeda(totais.TransferenciasEnviadas)}"
                 + Environment.NewLine + "Totais de todo o período, incluindo todas as páginas; não representam o saldo da conta.";
             _situacaoPagina.Text = resultado.QuantidadeTotal == 0 ? "Nenhuma movimentação."
                 : $"Página {resultado.Pagina} de {resultado.TotalPaginas} • {resultado.QuantidadeTotal} movimentações";
-            MostrarStatusExtrato($"{resultado.Itens.Count} exibida(s) | {filtro.Inicio:dd/MM/yyyy} a {filtro.Fim:dd/MM/yyyy} | {filtro.Contas.Length} conta(s)");
+            MostrarStatusExtrato($"{resultado.Itens.Count} exibida(s) | {filtro.Inicio:dd/MM/yyyy} a {filtro.Fim:dd/MM/yyyy} | {filtro.Origens.Length} {(filtro.ComprasNoCartao ? "cartão(ões)" : "conta(s)")}");
             AtualizarSelecaoExtrato();
         }
         catch (Exception erro)
@@ -260,7 +410,9 @@ public partial class UcTransacoes
         }
         bool avaliar = linha.Tipo == TipoTransacao.Saida || linha.Transferencia;
         txtDetalhesExtrato.Text = string.Join(Environment.NewLine,
-            $"Conta: {linha.Conta}", $"Banco: {linha.Banco}",
+            linha.QuantidadeParcelas is int parcelas
+                ? $"Cartão: {linha.Conta}{Environment.NewLine}Parcelas: {parcelas}"
+                : $"Conta: {linha.Conta}{Environment.NewLine}Banco: {linha.Banco}",
             $"Data: {linha.Data:dd/MM/yyyy HH:mm:ss}", $"Tipo: {linha.Movimento}",
             $"Valor: {Moeda(linha.Valor)}", $"Categoria: {linha.Categoria}")
             + Environment.NewLine + (avaliar ? string.Join(Environment.NewLine,
@@ -269,6 +421,13 @@ public partial class UcTransacoes
             $"Urgência: {(linha.Urgencia == UrgenciaTransacao.SemUrgencia ? "Sem urgência" : linha.Urgencia?.ToString() ?? "Não informada")}",
             "Justificativa:", linha.Justificativa) : "Avaliação: Não se aplica.")
             + Environment.NewLine + "Descrição:" + Environment.NewLine + linha.Descricao;
+        if (linha.Parcelas.Count > 0)
+        {
+            txtDetalhesExtrato.AppendText(Environment.NewLine + Environment.NewLine + "Parcelas:" + Environment.NewLine);
+            txtDetalhesExtrato.AppendText(string.Join(Environment.NewLine, linha.Parcelas.Select(p =>
+                $"{p.Numero}/{p.Quantidade} • {Moeda(p.Valor)} • Fechamento: {p.Fechamento:dd/MM/yyyy} • Vencimento: {p.Vencimento:dd/MM/yyyy}")));
+        }
+
         txtDetalhesExtrato.SelectionStart = 0;
         txtDetalhesExtrato.SelectionLength = 0;
     }
@@ -288,13 +447,14 @@ public partial class UcTransacoes
     private void DefinirConsultaEmAndamento(bool consultando)
     {
         _consultandoExtrato = consultando;
-        btnConsultarExtrato.Enabled = !consultando && !_registrando && _contasExtratoCarregadas;
+        _painelFiltrosGastos.Enabled = !consultando;
+        AtualizarSelecaoCartoesGastos();
+        btnConsultarExtrato.Enabled = !consultando && _contasExtratoCarregadas;
         dtpDataInicialExtrato.Enabled = !consultando;
         dtpDataFinalExtrato.Enabled = !consultando;
         chkTodasContasExtrato.Enabled = !consultando;
         clbContasExtrato.Enabled = !consultando && !chkTodasContasExtrato.Checked;
         AtualizarSelecaoExtrato();
-        AtualizarEstadoRegistro();
         AtualizarPaginacao();
     }
 
@@ -319,5 +479,5 @@ public partial class UcTransacoes
 
     private static string Moeda(decimal valor) => valor.ToString("C2", CulturaExtrato);
     private sealed record OpcaoContaExtrato(Guid Id, string Nome);
-    private sealed record FiltroExtrato(Guid[] Contas, DateTime Inicio, DateTime Fim);
+    private sealed record FiltroExtrato(Guid[] Origens, DateTime Inicio, DateTime Fim, bool ComprasNoCartao = false);
 }

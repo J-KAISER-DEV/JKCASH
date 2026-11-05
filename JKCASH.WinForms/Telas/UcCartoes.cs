@@ -11,14 +11,13 @@ public partial class UcCartoes : UserControl
     private readonly IConfirmacaoOperacao _confirmacao = ConfirmacaoOperacao.Padrao;
     private readonly ICartaoCreditoRepositorio? _cartoes;
     private readonly IContaRepositorio? _contas;
-    private bool _consultaCartoesValida;
+    private bool _consultaCartoesValida, _ocupado;
 
     public UcCartoes()
     {
         InitializeComponent();
         ConfigurarTabelaCartoes();
-        ConfigurarCompras();
-        OcupacaoCompra(false);
+        DefinirOcupacao(false);
     }
 
     public UcCartoes(ICartaoCreditoRepositorio cartoes, IContaRepositorio contas, IConfirmacaoOperacao? confirmacao = null) : this()
@@ -28,8 +27,8 @@ public partial class UcCartoes : UserControl
         _cartoes = cartoes;
         _contas = contas;
         _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
-        Load += async (_, _) => await CarregarDadosComprasAsync();
-        btnAtualizarCartoes.Click += async (_, _) => await CarregarDadosComprasAsync();
+        Load += async (_, _) => await CarregarCartoesAsync();
+        btnAtualizarCartoes.Click += async (_, _) => await CarregarCartoesAsync();
         btnSalvarCartao.Click += async (_, _) => await SalvarCartaoAsync();
     }
 
@@ -95,11 +94,11 @@ public partial class UcCartoes : UserControl
 
     private async Task SalvarCartaoAsync()
     {
-        if (_operacaoCompra || !_consultaCartoesValida || _cartoes is null || _contas is null ||
+        if (_ocupado || !_consultaCartoesValida || _cartoes is null || _contas is null ||
             IsDisposed || Disposing) return;
         bool gravando = false, salvo = false;
-        OcupacaoCompra(true);
-        txtResultadoCompra.Text = "Cadastrando cartão…";
+        DefinirOcupacao(true);
+        txtResultadoCartao.Text = "Cadastrando cartão…";
         try
         {
             if (cmbContaCartao.SelectedValue is not Guid contaId)
@@ -112,16 +111,16 @@ public partial class UcCartoes : UserControl
             if (IsDisposed || Disposing) return;
             if (!ativa) throw new ArgumentException("A conta selecionada não existe ou está inativa. Atualize os dados.");
             if (!_confirmacao.Confirmar(this, "Cadastrar cartão", ResumoOperacao.Cartao(cartao, cmbContaCartao.Text)))
-            { txtResultadoCompra.Text = "Cadastro cancelado. Preenchimento preservado."; return; }
+            { txtResultadoCartao.Text = "Cadastro cancelado. Preenchimento preservado."; return; }
             gravando = true;
             await Task.Run(() => _cartoes.Adicionar(cartao));
             salvo = true;
             if (IsDisposed || Disposing) return;
             txtNomeCartao.Clear();
             numLimiteCartao.Value = 0m;
-            await RecarregarComprasCoreAsync(cartao.Id);
+            await RecarregarCartoesCoreAsync();
             if (IsDisposed || Disposing) return;
-            txtResultadoCompra.Text = "Cartão cadastrado. Limites e opções atualizados.";
+            txtResultadoCartao.Text = "Cartão cadastrado. Limites e opções atualizados.";
             txtNomeCartao.Focus();
         }
         catch (Exception erro)
@@ -129,15 +128,61 @@ public partial class UcCartoes : UserControl
             Debug.WriteLine(erro);
             if (IsDisposed || Disposing) return;
             if (!gravando && erro is ArgumentException)
-                txtResultadoCompra.Text = erro.Message;
+                txtResultadoCartao.Text = erro.Message;
             else
             {
                 InvalidarDadosCartoes();
-                txtResultadoCompra.Text = salvo
+                txtResultadoCartao.Text = salvo
                     ? "O cartão foi salvo, mas a consulta não pôde ser atualizada. Use Atualizar dados para conferir."
                     : "Não foi possível confirmar o cadastro. Atualize e confira os cartões antes de tentar novamente.";
             }
         }
-        finally { OcupacaoCompra(false); }
+        finally { DefinirOcupacao(false); }
     }
+
+    private async Task CarregarCartoesAsync()
+    {
+        if (_ocupado || _cartoes is null || _contas is null || IsDisposed || Disposing) return;
+        DefinirOcupacao(true);
+        txtResultadoCartao.Text = "Consultando cartões…";
+        try
+        {
+            await RecarregarCartoesCoreAsync();
+            if (!IsDisposed && !Disposing) txtResultadoCartao.Clear();
+        }
+        catch (Exception erro)
+        {
+            Debug.WriteLine(erro);
+            if (IsDisposed || Disposing) return;
+            InvalidarDadosCartoes();
+            txtResultadoCartao.Text = "Não foi possível carregar os cartões. Clique em Atualizar dados para tentar novamente.";
+        }
+        finally { DefinirOcupacao(false); }
+    }
+
+    private async Task RecarregarCartoesCoreAsync()
+    {
+        var dados = await Task.Run(() => (_cartoes!.ListarTodos(), _contas!.ListarTodas()));
+        if (IsDisposed || Disposing) return;
+        PreencherCadastroCartoes(dados.Item1, dados.Item2);
+        _consultaCartoesValida = true;
+    }
+
+    private void InvalidarDadosCartoes()
+    {
+        _consultaCartoesValida = false;
+        cmbContaCartao.DataSource = null;
+        dgvCartoes.DataSource = null;
+    }
+
+    private void DefinirOcupacao(bool ocupado)
+    {
+        _ocupado = ocupado;
+        if (IsDisposed || Disposing) return;
+        UseWaitCursor = ocupado;
+        tabCartoes.Enabled = !ocupado;
+        btnAtualizarCartoes.Enabled = !ocupado;
+        btnSalvarCartao.Enabled = !ocupado && _consultaCartoesValida && cmbContaCartao.Items.Count > 0;
+    }
+
 }

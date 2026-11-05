@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
@@ -7,10 +7,16 @@ namespace JKCASH.Infrastructure.Persistencia
 {
     public static class ConexaoLocal
     {
+#if JKCASH_BETA
+        private const string NomePastaDados = "JKCASH.Beta";
+#else
+        private const string NomePastaDados = "JKCASH";
+#endif
+
         public static string PastaDados => Path.Combine(
             Environment.GetFolderPath(
                 Environment.SpecialFolder.LocalApplicationData),
-            "JKCASH");
+            NomePastaDados);
         public static string CaminhoBanco => Path.Combine(PastaDados, "jkcash.db");
 
         public static JKCASHDbContext CriarContexto()

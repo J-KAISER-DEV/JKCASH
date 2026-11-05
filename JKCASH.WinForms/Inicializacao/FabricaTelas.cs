@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using JKCASH.Application.Interfaces;
@@ -43,11 +43,7 @@ public static class FabricaTelas
     public static UcContas CriarContas()
     {
         IContaRepositorio contas = new ContaRepositorioEf(ConexaoLocal.CriarContexto);
-        ICategoriaRepositorio categorias = new CategoriaRepositorioEf(ConexaoLocal.CriarContexto);
-        ITransferenciaRepositorio repositorioTransferencias = new TransferenciaRepositorioEf(ConexaoLocal.CriarContexto);
-        TransferenciaServico transferencias = new(contas, categorias, repositorioTransferencias);
-
-        return new UcContas(contas, categorias, transferencias);
+        return new UcContas(contas);
     }
 
     public static UcTransacoes CriarTransacoes()
@@ -57,18 +53,30 @@ public static class FabricaTelas
         ITransacaoRepositorio transacoes = new TransacaoRepositorioEf(ConexaoLocal.CriarContexto);
         TransacaoServico servico = new(transacoes, categorias);
 
-        return new UcTransacoes(contas, categorias, servico, new ExtratoConsulta(ConexaoLocal.CriarContexto));
+        ITransferenciaRepositorio repositorioTransferencias = new TransferenciaRepositorioEf(ConexaoLocal.CriarContexto);
+        TransferenciaServico transferencias = new(contas, categorias, repositorioTransferencias);
+        ICartaoCreditoRepositorio cartoes = new CartaoCreditoRepositorioEf(ConexaoLocal.CriarContexto);
+        ICompraCartaoRepositorio compras = new CompraCartaoRepositorioEf(ConexaoLocal.CriarContexto);
+        return new UcTransacoes(contas, categorias, servico, transferencias, cartoes,
+            new CompraCartaoServico(cartoes, categorias, compras));
+    }
+
+    public static UcExtrato CriarExtrato()
+    {
+        IContaRepositorio contas = new ContaRepositorioEf(ConexaoLocal.CriarContexto);
+        return new UcExtrato(
+            contas,
+            new ExtratoConsulta(ConexaoLocal.CriarContexto),
+            new RelatorioGastosConsulta(ConexaoLocal.CriarContexto),
+            new CategoriaRepositorioEf(ConexaoLocal.CriarContexto),
+            new CartaoCreditoRepositorioEf(ConexaoLocal.CriarContexto));
     }
 
     public static UcCartoes CriarCartoes()
     {
         ICartaoCreditoRepositorio cartoes = new CartaoCreditoRepositorioEf(ConexaoLocal.CriarContexto);
         IContaRepositorio contas = new ContaRepositorioEf(ConexaoLocal.CriarContexto);
-        ICategoriaRepositorio categorias = new CategoriaRepositorioEf(ConexaoLocal.CriarContexto);
-        ICompraCartaoRepositorio compras = new CompraCartaoRepositorioEf(ConexaoLocal.CriarContexto);
-        CompraCartaoServico servico = new(cartoes, categorias, compras);
-
-        return new UcCartoes(cartoes, contas, categorias, compras, servico);
+        return new UcCartoes(cartoes, contas);
     }
 
     public static UcFaturas CriarFaturas()

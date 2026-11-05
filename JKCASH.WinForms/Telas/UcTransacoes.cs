@@ -15,52 +15,69 @@ public partial class UcTransacoes : UserControl
     private readonly TransacaoServico? _servico;
     private readonly IContaRepositorio? _contas;
     private readonly ICategoriaRepositorio? _categorias;
-    private readonly IExtratoConsulta? _extrato;
     private bool _registrando, _opcoesCarregadas;
+    private UcTransferencias? _telaTransferencias;
+    private UcCompraCartao? _telaCompraCartao;
     private readonly Button _atualizarOpcoes;
 
     public UcTransacoes()
     {
         InitializeComponent();
         CarregarOpcoes();
-        cmbTipoTransacao.SelectedValueChanged += (_, _) => AtualizarCamposAvaliacao();
         AtualizarCamposAvaliacao();
-        ConfigurarExtrato();
         _atualizarOpcoes = EstiloVisual.Botao("Atualizar dados");
         _atualizarOpcoes.Name = "btnAtualizarOpcoes";
         _atualizarOpcoes.Size = new Size(180, 36);
         _atualizarOpcoes.Location = new Point(Width - 206, 70);
         _atualizarOpcoes.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         Controls.Add(_atualizarOpcoes);
-        _atualizarOpcoes.Click += async (_, _) => await AtualizarOpcoesAsync();
+        _atualizarOpcoes.Click += async (_, _) => await AtualizarFormularioAtualAsync();
+        cmbTipoTransacao.SelectedIndexChanged += async (_, _) => await AtualizarTipoMovimentacaoAsync();
         AtualizarEstadoRegistro();
     }
 
     public UcTransacoes(IContaRepositorio contas, ICategoriaRepositorio categorias,
-        TransacaoServico servico, IExtratoConsulta extrato, IConfirmacaoOperacao? confirmacao = null) : this()
+        TransacaoServico servico, TransferenciaServico transferencias,
+        ICartaoCreditoRepositorio cartoes, CompraCartaoServico compras, IConfirmacaoOperacao? confirmacao = null) : this()
     {
         ArgumentNullException.ThrowIfNull(contas);
         ArgumentNullException.ThrowIfNull(categorias);
         ArgumentNullException.ThrowIfNull(servico);
-        ArgumentNullException.ThrowIfNull(extrato);
         _contas = contas;
         _categorias = categorias;
         _servico = servico;
-        _extrato = extrato;
         _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
+        _telaTransferencias = new UcTransferencias(contas, categorias, transferencias, _confirmacao)
+        {
+            Bounds = pnlCadastroTransacao.Bounds,
+            Anchor = pnlCadastroTransacao.Anchor,
+            Visible = false
+        };
+        _telaTransferencias.TransferenciaRealizada += async (_, _) =>
+        {
+            if (!EmModoTransferencia)
+                await AtualizarOpcoesAsync();
+        };
+        Controls.Add(_telaTransferencias);
+        _telaCompraCartao = new UcCompraCartao(cartoes, contas, categorias, compras, _confirmacao)
+        {
+            Bounds = pnlCadastroTransacao.Bounds,
+            Anchor = pnlCadastroTransacao.Anchor,
+            Visible = false
+        };
+        Controls.Add(_telaCompraCartao);
         Load += async (_, _) => await AtualizarOpcoesAsync();
         btnRegistrarTransacao.Click += async (_, _) => await RegistrarTransacaoAsync();
     }
 
     private async Task AtualizarOpcoesAsync()
     {
-        if (_registrando || _consultandoExtrato || _contas is null || IsDisposed || Disposing) return;
+        if (_registrando || _contas is null || IsDisposed || Disposing) return;
         _registrando = true;
         AtualizarEstadoRegistro();
         try
         {
             await CarregarContasECategoriasAsync();
-            if (!IsDisposed && !Disposing) await CarregarContasDoExtratoAsync();
         }
         catch (Exception erro)
         {
@@ -104,7 +121,7 @@ public partial class UcTransacoes : UserControl
 
     private async Task RegistrarTransacaoAsync()
     {
-        if (_registrando || _consultandoExtrato || !_opcoesCarregadas || _servico is null ||
+        if (_registrando || !_opcoesCarregadas || _servico is null ||
             _contas is null || IsDisposed || Disposing) return;
         bool salva = false;
         try
@@ -112,7 +129,7 @@ public partial class UcTransacoes : UserControl
             if (cmbContaTransacao.SelectedValue is not Guid contaId ||
                 cmbCategoriaTransacao.SelectedValue is not Guid categoriaId)
                 throw new ArgumentException("Selecione uma conta e uma categoria.");
-            if (cmbTipoTransacao.SelectedItem is not TipoTransacao tipo)
+            if (cmbTipoTransacao.SelectedItem is not OpcaoMovimentacao { Tipo: TipoTransacao tipo })
                 throw new ArgumentException("Selecione o tipo de movimentação.");
             ImportanciaTransacao? importancia = null;
             PlanejamentoTransacao? planejamento = null;
@@ -146,8 +163,6 @@ public partial class UcTransacoes : UserControl
             txtJustificativaTransacao.Clear();
             await CarregarContasECategoriasAsync();
             if (IsDisposed) return;
-            await CarregarContasDoExtratoAsync();
-            if (IsDisposed) return;
             MessageBox.Show($"Transação registrada!\nSaldo após o registro: {conta.Saldo.SaldoAtual:C2}",
                 "JKCASH", MessageBoxButtons.OK, MessageBoxIcon.Information);
             numValorTransacao.Focus();
@@ -161,7 +176,6 @@ public partial class UcTransacoes : UserControl
             {
                 await CarregarContasECategoriasAsync();
                 if (IsDisposed) return;
-                await CarregarContasDoExtratoAsync();
                 mensagem = erro.Message + "\nOs dados foram atualizados. Confira o preenchimento antes de tentar novamente.";
             }
             catch (Exception falhaConsulta)
@@ -194,15 +208,14 @@ public partial class UcTransacoes : UserControl
     private void AtualizarEstadoRegistro()
     {
         if (IsDisposed) return;
-        bool ocupado = _registrando || _consultandoExtrato;
+        bool ocupado = _registrando;
         UseWaitCursor = ocupado;
         tlpDadosTransacao.Enabled = !ocupado;
         txtDescricaoTransacao.Enabled = !ocupado;
         txtJustificativaTransacao.Enabled = !ocupado;
         btnRegistrarTransacao.Enabled = !ocupado && _opcoesCarregadas;
         _atualizarOpcoes.Enabled = !ocupado;
-        btnConsultarExtrato.Enabled = !ocupado && _contasExtratoCarregadas;
-        tabTransacoes.Enabled = !_registrando;
+        cmbTipoTransacao.Enabled = !ocupado;
     }
 
     private void InvalidarOpcoes()
@@ -212,9 +225,42 @@ public partial class UcTransacoes : UserControl
         cmbCategoriaTransacao.DataSource = null;
     }
 
+    private sealed record OpcaoMovimentacao(string Nome, TipoTransacao? Tipo, bool CompraCartao = false);
+
+    private bool EmModoTransferencia =>
+        cmbTipoTransacao.SelectedItem is OpcaoMovimentacao { Tipo: null, CompraCartao: false };
+
+    private bool EmModoCompraCartao =>
+        cmbTipoTransacao.SelectedItem is OpcaoMovimentacao { CompraCartao: true };
+
+    private async Task AtualizarFormularioAtualAsync()
+    {
+        if (EmModoCompraCartao && _telaCompraCartao is not null)
+            await _telaCompraCartao.AtualizarDadosAsync();
+        else
+            await AtualizarOpcoesAsync();
+    }
+
+    private async Task AtualizarTipoMovimentacaoAsync()
+    {
+        AtualizarCamposAvaliacao();
+        bool formularioAlternativoAberto =
+            _telaTransferencias?.Visible == true || _telaCompraCartao?.Visible == true;
+        pnlCadastroTransacao.Visible = !EmModoTransferencia && !EmModoCompraCartao;
+        _atualizarOpcoes.Visible = !EmModoTransferencia;
+
+        if (_telaTransferencias is not null) _telaTransferencias.Visible = EmModoTransferencia;
+        if (_telaCompraCartao is not null) _telaCompraCartao.Visible = EmModoCompraCartao;
+
+        if (EmModoTransferencia && _telaTransferencias is not null)
+            await _telaTransferencias.AtualizarDadosAsync();
+        else if (EmModoCompraCartao || formularioAlternativoAberto)
+            await AtualizarFormularioAtualAsync();
+    }
+
     private void AtualizarCamposAvaliacao()
     {
-        bool saida = cmbTipoTransacao.SelectedItem is TipoTransacao.Saida;
+        bool saida = cmbTipoTransacao.SelectedItem is OpcaoMovimentacao { Tipo: TipoTransacao.Saida };
         foreach (Control controle in new Control[] { lblImportanciaTransacao, cmbImportanciaTransacao,
             lblPlanejamentoTransacao, cmbPlanejamentoTransacao, lblUrgenciaTransacao, cmbUrgenciaTransacao,
             lblJustificativaTransacao, txtJustificativaTransacao }) controle.Visible = saida;
@@ -222,7 +268,14 @@ public partial class UcTransacoes : UserControl
 
     private void CarregarOpcoes()
     {
-        cmbTipoTransacao.DataSource = Enum.GetValues<TipoTransacao>();
+        cmbTipoTransacao.DisplayMember = nameof(OpcaoMovimentacao.Nome);
+        cmbTipoTransacao.DataSource = new OpcaoMovimentacao[]
+        {
+            new("Entrada", TipoTransacao.Entrada),
+            new("Saída", TipoTransacao.Saida),
+            new("Transferência entre contas", null),
+            new("Compra no cartão", null, CompraCartao: true)
+        };
         cmbImportanciaTransacao.DataSource = Enum.GetValues<ImportanciaTransacao>();
         cmbPlanejamentoTransacao.DataSource = Enum.GetValues<PlanejamentoTransacao>();
         cmbUrgenciaTransacao.DataSource = Enum.GetValues<UrgenciaTransacao>();

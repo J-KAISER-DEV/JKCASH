@@ -1,4 +1,4 @@
-using JKCASH.Application.Modelos;
+﻿using JKCASH.Application.Modelos;
 using System.Diagnostics;
 using JKCASH.Application.Interfaces;
 using JKCASH.Application.Servicos;
@@ -13,7 +13,6 @@ public partial class UcContas : UserControl
     private readonly IConfirmacaoOperacao _confirmacao = ConfirmacaoOperacao.Padrao;
     private readonly IContaRepositorio? _repositorio;
     private readonly BarraAtualizacao _consulta;
-    private UcTransferencias? _telaTransferencias;
     private bool _ocupado, _consultaValida;
 
     public UcContas()
@@ -33,22 +32,6 @@ public partial class UcContas : UserControl
         _confirmacao = confirmacao ?? ConfirmacaoOperacao.Padrao;
         Load += async (_, _) => await AtualizarContasAsync();
         btnSalvarConta.Click += async (_, _) => await SalvarContaAsync();
-        tabContas.SelectedIndexChanged += async (_, _) =>
-        {
-            if (tabContas.SelectedTab == tabCadastroContas) await AtualizarContasAsync();
-            else if (_telaTransferencias is not null) await _telaTransferencias.AtualizarDadosAsync();
-        };
-    }
-
-    public UcContas(IContaRepositorio repositorio, ICategoriaRepositorio categorias,
-        TransferenciaServico transferencias, IConfirmacaoOperacao? confirmacao = null) : this(repositorio, confirmacao)
-    {
-        ArgumentNullException.ThrowIfNull(categorias);
-        ArgumentNullException.ThrowIfNull(transferencias);
-        _telaTransferencias = new UcTransferencias(repositorio, categorias, transferencias, _confirmacao)
-        { Dock = DockStyle.Fill };
-        _telaTransferencias.TransferenciaRealizada += async (_, _) => await AtualizarContasAsync();
-        tabTransferirContas.Controls.Add(_telaTransferencias);
     }
 
     private async Task AtualizarContasAsync()
