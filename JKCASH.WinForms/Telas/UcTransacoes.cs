@@ -17,7 +17,7 @@ public partial class UcTransacoes : UserControl
     private readonly ICategoriaRepositorio? _categorias;
     private bool _registrando, _opcoesCarregadas;
     private UcTransferencias? _telaTransferencias;
-    private UcCompraCartao? _telaCompraCartao;
+    private UcRegistroGasto? _telaGasto;
     private readonly Button _atualizarOpcoes;
 
     public UcTransacoes()
@@ -38,7 +38,7 @@ public partial class UcTransacoes : UserControl
 
     public UcTransacoes(IContaRepositorio contas, ICategoriaRepositorio categorias,
         TransacaoServico servico, TransferenciaServico transferencias,
-        ICartaoCreditoRepositorio cartoes, CompraCartaoServico compras, IConfirmacaoOperacao? confirmacao = null) : this()
+        ICartaoCreditoRepositorio cartoes, CompraCartaoServico compras, IConfirmacaoOperacao? confirmacao = null, IGastoRepositorio? gastos = null) : this()
     {
         ArgumentNullException.ThrowIfNull(contas);
         ArgumentNullException.ThrowIfNull(categorias);
@@ -59,13 +59,16 @@ public partial class UcTransacoes : UserControl
                 await AtualizarOpcoesAsync();
         };
         Controls.Add(_telaTransferencias);
-        _telaCompraCartao = new UcCompraCartao(cartoes, contas, categorias, compras, _confirmacao)
+        if (gastos is not null)
         {
-            Bounds = pnlCadastroTransacao.Bounds,
-            Anchor = pnlCadastroTransacao.Anchor,
-            Visible = false
-        };
-        Controls.Add(_telaCompraCartao);
+            _telaGasto = new UcRegistroGasto(gastos, categorias, contas, cartoes, servico, compras, _confirmacao)
+            {
+                Bounds = pnlCadastroTransacao.Bounds,
+                Anchor = pnlCadastroTransacao.Anchor,
+                Visible = false
+            };
+            Controls.Add(_telaGasto);
+        }
         Load += async (_, _) => await AtualizarOpcoesAsync();
         btnRegistrarTransacao.Click += async (_, _) => await RegistrarTransacaoAsync();
     }
@@ -230,13 +233,13 @@ public partial class UcTransacoes : UserControl
     private bool EmModoTransferencia =>
         cmbTipoTransacao.SelectedItem is OpcaoMovimentacao { Tipo: null, CompraCartao: false };
 
-    private bool EmModoCompraCartao =>
-        cmbTipoTransacao.SelectedItem is OpcaoMovimentacao { CompraCartao: true };
+    private bool EmModoGasto =>
+        _telaGasto is not null && cmbTipoTransacao.SelectedItem is OpcaoMovimentacao { Tipo: TipoTransacao.Saida };
 
     private async Task AtualizarFormularioAtualAsync()
     {
-        if (EmModoCompraCartao && _telaCompraCartao is not null)
-            await _telaCompraCartao.AtualizarDadosAsync();
+        if (EmModoGasto && _telaGasto is not null)
+            await _telaGasto.AtualizarDadosAsync();
         else
             await AtualizarOpcoesAsync();
     }
@@ -245,16 +248,16 @@ public partial class UcTransacoes : UserControl
     {
         AtualizarCamposAvaliacao();
         bool formularioAlternativoAberto =
-            _telaTransferencias?.Visible == true || _telaCompraCartao?.Visible == true;
-        pnlCadastroTransacao.Visible = !EmModoTransferencia && !EmModoCompraCartao;
+            _telaTransferencias?.Visible == true || _telaGasto?.Visible == true;
+        pnlCadastroTransacao.Visible = !EmModoTransferencia && !EmModoGasto;
         _atualizarOpcoes.Visible = !EmModoTransferencia;
 
         if (_telaTransferencias is not null) _telaTransferencias.Visible = EmModoTransferencia;
-        if (_telaCompraCartao is not null) _telaCompraCartao.Visible = EmModoCompraCartao;
+        if (_telaGasto is not null) _telaGasto.Visible = EmModoGasto;
 
         if (EmModoTransferencia && _telaTransferencias is not null)
             await _telaTransferencias.AtualizarDadosAsync();
-        else if (EmModoCompraCartao || formularioAlternativoAberto)
+        else if (EmModoGasto || formularioAlternativoAberto)
             await AtualizarFormularioAtualAsync();
     }
 
@@ -272,9 +275,8 @@ public partial class UcTransacoes : UserControl
         cmbTipoTransacao.DataSource = new OpcaoMovimentacao[]
         {
             new("Entrada", TipoTransacao.Entrada),
-            new("Saída", TipoTransacao.Saida),
-            new("Transferência entre contas", null),
-            new("Compra no cartão", null, CompraCartao: true)
+            new("Gasto (débito ou crédito)", TipoTransacao.Saida),
+            new("Transferência entre contas", null)
         };
         cmbImportanciaTransacao.DataSource = Enum.GetValues<ImportanciaTransacao>();
         cmbPlanejamentoTransacao.DataSource = Enum.GetValues<PlanejamentoTransacao>();

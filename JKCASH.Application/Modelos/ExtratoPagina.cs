@@ -1,3 +1,4 @@
+using JKCASH.Domain.ObjetosDeValor;
 using JKCASH.Domain.Enums;
 
 namespace JKCASH.Application.Modelos;
@@ -7,6 +8,11 @@ public sealed record ExtratoItem(Guid Id, DateTime Data, string Conta, string Ba
     ImportanciaTransacao? Importancia, PlanejamentoTransacao? Planejamento,
     UrgenciaTransacao? Urgencia, string? Justificativa, int? QuantidadeParcelas = null)
 {
+    public DetalhesGasto? Gasto { get; init; }
+    public string NomeGasto => Gasto?.Nome ?? (Tipo == TipoTransacao.Entrada || Transferencia ? "—" : "Sem gasto vinculado");
+    public string NaturezaGasto => Gasto?.Natureza.ToString() == "Servico" ? "Serviço" : Gasto?.Natureza.ToString() ?? "—";
+    public string NecessidadeGasto => Gasto?.Necessidade.ToString() == "Media" ? "Média" : Gasto?.Necessidade.ToString() ?? "—";
+    public string FrequenciaGasto => Gasto?.Frequencia.ToString() ?? "—";
     public IReadOnlyList<ExtratoParcela> Parcelas { get; init; } = [];
 
     public string Movimento => QuantidadeParcelas.HasValue ? "Compra no cartão"

@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Application.Excecoes;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
@@ -73,6 +73,7 @@ namespace JKCASH.Infrastructure.Repositorios
                 }
             }
 
+            if (compra.NovoCadastroGasto is Gasto cadastro) contexto.Gastos.Add(cadastro);
             contexto.ComprasCartao.Add(compra);
             // Compra, parcelas, faturas e limite são confirmados juntos.
             contexto.SaveChanges();

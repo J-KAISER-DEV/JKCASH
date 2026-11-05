@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Modelos;
+using JKCASH.Application.Modelos;
 using JKCASH.Infrastructure.Persistencia;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +53,10 @@ public static class BancoBackup
 
         string[] tabelas = ["Contas", "Categorias", "Transacoes", "CartoesCredito",
             "ComprasCartao", "ParcelasCartao", "FaturasCartao", "PagamentosFatura"];
+        // Backups antigos continuam aceitos antes da atualização da cópia.
+        using var existeGastos = conexao.CreateCommand();
+        existeGastos.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Gastos';";
+        if ((long)existeGastos.ExecuteScalar()! > 0) tabelas = [.. tabelas, "Gastos"];
         Dictionary<string, long> quantidades = new();
         foreach (string tabela in tabelas)
         {

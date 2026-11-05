@@ -1,5 +1,10 @@
 # JKCASH
 
+## Cadastro de gastos
+
+O menu **Gastos** reúne o cadastro reutilizável e as categorias auxiliares. Em **Transações > Gasto (débito ou crédito)**, selecione um gasto salvo ou crie um novo, com opção de salvá-lo para reutilizar. O motivo é obrigatório quando a necessidade ou a importância for baixa. Frequência: Eventual ou Mensal. Veja [como experimentar a alteração e os detalhes de compatibilidade](docs/cadastro-gastos.md).
+
+
 ## Abrir no Visual Studio
 
 Depois de clonar o repositório, abra `JKCASH.sln`, na raiz, usando **Arquivo > Abrir > Projeto/Solução**. Essa solução reúne os projetos do JKCASH. Abrir apenas a pasta do repositório deixa o Visual Studio no modo de pastas.

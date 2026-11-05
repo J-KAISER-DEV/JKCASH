@@ -22,6 +22,8 @@ public sealed partial class ExclusaoRepositorioEf
                 transacoes = db.Transacoes.AsNoTracking().Where(t => t.ContaId == id).ToList();
                 break;
             case TipoRegistro.Categoria:
+                if (db.Gastos.Any(g => g.CategoriaId == id))
+                    throw new InvalidOperationException("A categoria está em uso por um gasto salvo. Altere a categoria desse gasto primeiro.");
                 if (db.Transacoes.Any(t => t.CategoriaId == id) || db.ComprasCartao.Any(c => c.CategoriaId == id))
                     throw new InvalidOperationException("A categoria está em uso. Exclua as movimentações relacionadas primeiro.");
                 categorias.Add(id);

@@ -52,7 +52,7 @@ namespace JKCASH.WinForms.Telas
             btnFecharDetalhesExtrato = new Button();
             lblStatusExtrato = new Label();
             tabRelatorioGastos = new TabPage();
-            dgvGastosPorCategoria = new DataGridView();
+            dgvResumoGastos = new DataGridView();
             pnlFiltrosExtrato.SuspendLayout();
             tabExtrato.SuspendLayout();
             tabMovimentacoes.SuspendLayout();
@@ -64,7 +64,7 @@ namespace JKCASH.WinForms.Telas
             ((System.ComponentModel.ISupportInitialize)dgvExtrato).BeginInit();
             pnlAcoesExtrato.SuspendLayout();
             tabRelatorioGastos.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)dgvGastosPorCategoria).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dgvResumoGastos).BeginInit();
             SuspendLayout();
             // 
             // lblTitulo
@@ -346,7 +346,7 @@ namespace JKCASH.WinForms.Telas
             // 
             // tabRelatorioGastos
             // 
-            tabRelatorioGastos.Controls.Add(dgvGastosPorCategoria);
+            tabRelatorioGastos.Controls.Add(dgvResumoGastos);
             tabRelatorioGastos.Location = new Point(4, 26);
             tabRelatorioGastos.Name = "tabRelatorioGastos";
             tabRelatorioGastos.Padding = new Padding(3);
@@ -355,21 +355,21 @@ namespace JKCASH.WinForms.Telas
             tabRelatorioGastos.Text = "Relatório de gastos";
             tabRelatorioGastos.UseVisualStyleBackColor = true;
             // 
-            // dgvGastosPorCategoria
+            // dgvResumoGastos
             // 
-            dgvGastosPorCategoria.AllowUserToAddRows = false;
-            dgvGastosPorCategoria.AllowUserToDeleteRows = false;
-            dgvGastosPorCategoria.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            dgvGastosPorCategoria.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
-            dgvGastosPorCategoria.Dock = DockStyle.Fill;
-            dgvGastosPorCategoria.Location = new Point(3, 3);
-            dgvGastosPorCategoria.MultiSelect = false;
-            dgvGastosPorCategoria.Name = "dgvGastosPorCategoria";
-            dgvGastosPorCategoria.ReadOnly = true;
-            dgvGastosPorCategoria.RowHeadersVisible = false;
-            dgvGastosPorCategoria.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvGastosPorCategoria.Size = new Size(936, 488);
-            dgvGastosPorCategoria.TabIndex = 0;
+            dgvResumoGastos.AllowUserToAddRows = false;
+            dgvResumoGastos.AllowUserToDeleteRows = false;
+            dgvResumoGastos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
+            dgvResumoGastos.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dgvResumoGastos.Dock = DockStyle.Fill;
+            dgvResumoGastos.Location = new Point(3, 3);
+            dgvResumoGastos.MultiSelect = false;
+            dgvResumoGastos.Name = "dgvResumoGastos";
+            dgvResumoGastos.ReadOnly = true;
+            dgvResumoGastos.RowHeadersVisible = false;
+            dgvResumoGastos.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
+            dgvResumoGastos.Size = new Size(936, 488);
+            dgvResumoGastos.TabIndex = 0;
             // 
             // UcExtrato
             // 
@@ -397,7 +397,7 @@ namespace JKCASH.WinForms.Telas
             ((System.ComponentModel.ISupportInitialize)dgvExtrato).EndInit();
             pnlAcoesExtrato.ResumeLayout(false);
             tabRelatorioGastos.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)dgvGastosPorCategoria).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dgvResumoGastos).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -428,6 +428,6 @@ namespace JKCASH.WinForms.Telas
         private Button btnFecharDetalhesExtrato;
         private Label lblStatusExtrato;
         private TabPage tabRelatorioGastos;
-        private DataGridView dgvGastosPorCategoria;
+        private DataGridView dgvResumoGastos;
     }
 }

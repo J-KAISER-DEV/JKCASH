@@ -7,8 +7,6 @@ public class FabricaContextoLocal
 {
     public JKCASHDbContext CreateDbContext(string[] args)
     {
-        ConexaoLocal.CriarPasta();
-
         return ConexaoLocal.CriarContexto();
     }
 }

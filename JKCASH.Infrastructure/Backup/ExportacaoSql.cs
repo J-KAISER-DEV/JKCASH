@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Security.Cryptography;
 using JKCASH.Application.Modelos;
 using JKCASH.Infrastructure.Persistencia;
@@ -25,13 +25,13 @@ public sealed class ExportacaoSql(string configuracao)
             await local.Database.OpenConnectionAsync(ct);
             var destino = (SqliteConnection)local.Database.GetDbConnection();
             var modelo = local.Model.GetRelationalModel();
-            string[] ordem = ["Contas", "Categorias", "CartoesCredito", "Transacoes",
+            string[] ordem = ["Contas", "Categorias", "Gastos", "CartoesCredito", "Transacoes",
                 "ComprasCartao", "FaturasCartao", "ParcelasCartao", "PagamentosFatura"];
 
             var configuracaoSql = new SqlConnectionStringBuilder(configuracao) { ConnectTimeout = 5 };
             await using var origem = new SqlConnection(configuracaoSql.ToString());
             await origem.OpenAsync(ct);
-            // Consulta e exportação das oito tabelas representam um único estado serializável.
+            // Consulta e exportação das tabelas representam um único estado serializável.
             using var leitura = origem.BeginTransaction(IsolationLevel.Serializable);
             using var gravacao = destino.BeginTransaction();
             var conversorMoeda = new ConversorMoeda();
@@ -41,11 +41,24 @@ public sealed class ExportacaoSql(string configuracao)
                 ct.ThrowIfCancellationRequested();
                 var tabela = modelo.Tables.Single(t => t.Name == nome);
                 var colunas = tabela.Columns.ToArray();
+                // Aceita também a origem SQL anterior ao cadastro de gastos.
+                using var esquema = origem.CreateCommand();
+                esquema.Transaction = leitura;
+                esquema.CommandText = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @schema AND TABLE_NAME = @tabela";
+                esquema.Parameters.AddWithValue("@schema", tabela.Schema ?? "dbo");
+                esquema.Parameters.AddWithValue("@tabela", nome);
+                var existentes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                await using (var leitorEsquema = await esquema.ExecuteReaderAsync(ct))
+                    while (await leitorEsquema.ReadAsync(ct)) existentes.Add(leitorEsquema.GetString(0));
+                if (nome == "Gastos" && existentes.Count == 0) continue;
+                string Selecao(string coluna) => existentes.Contains(coluna) ? QuotarSql(coluna)
+                    : coluna.StartsWith("Gasto", StringComparison.Ordinal) ? "NULL AS " + QuotarSql(coluna)
+                    : throw new InvalidDataException($"Coluna obrigatória ausente: {nome}.{coluna}.");
                 // Os nomes vêm do modelo do aplicativo, nunca da requisição HTTP.
                 using var consultar = origem.CreateCommand();
                 consultar.Transaction = leitura;
                 consultar.CommandTimeout = 20;
-                consultar.CommandText = $"SELECT {string.Join(", ", colunas.Select(c => QuotarSql(c.Name)))} " +
+                consultar.CommandText = $"SELECT {string.Join(", ", colunas.Select(c => Selecao(c.Name)))} " +
                     $"FROM {QuotarSql(tabela.Schema ?? "dbo")}.{QuotarSql(nome)};";
                 using var inserir = destino.CreateCommand();
                 inserir.Transaction = gravacao;

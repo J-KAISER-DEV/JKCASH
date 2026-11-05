@@ -1,4 +1,4 @@
-﻿using JKCASH.WinForms.Telas;
+using JKCASH.WinForms.Telas;
 using JKCASH.WinForms.Visual;
 using JKCASH.WinForms.Inicializacao;
 namespace JKCASH.WinForms;
@@ -50,7 +50,7 @@ public partial class FrmPrincipal
         {
             ("Dashboard", "\uE80F"), ("Contas", "contas"),
             ("Transações", "\uE8AB"), ("Extrato", "\uE8A5"), ("Cartões", "\uE8C7"),
-            ("Faturas", "\uE8A5"), ("Categorias", "\uE8EC")
+            ("Faturas", "\uE8A5"), ("Gastos", "\uE8EC")
         };
         foreach (var (tela, simbolo) in opcoes)
         {
@@ -151,9 +151,9 @@ public partial class FrmPrincipal
 
            
         }
-        if (tela == "Categorias")
+        if (tela == "Gastos")
         {
-            UcCategorias categorias = FabricaTelas.CriarCategorias();
+            UcGastos categorias = FabricaTelas.CriarGastos();
 
             categorias.Dock = DockStyle.Fill;
 

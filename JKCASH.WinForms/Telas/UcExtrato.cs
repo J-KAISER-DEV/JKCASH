@@ -23,7 +23,7 @@ public partial class UcExtrato : UserControl
         {
             Dock = DockStyle.Top,
             ForeColor = EstiloVisual.Secundario,
-            Height = 32,
+            Height = 48,
             Text = "Escolha os filtros e clique em Consultar gastos.",
             TextAlign = ContentAlignment.MiddleLeft
         };
@@ -62,19 +62,34 @@ public partial class UcExtrato : UserControl
     private void ConfigurarTabelaGastos()
     {
         TabelaVisual.Configurar(
-            dgvGastosPorCategoria,
-            (nameof(GastoPorCategoria.Categoria), "Categoria", "", 50),
-            (nameof(GastoPorCategoria.Quantidade), "Lançamentos", "N0", 20),
-            (nameof(GastoPorCategoria.Total), "Total gasto", "C2", 30));
+            dgvResumoGastos,
+            (nameof(ResumoGasto.Nome), "Gasto", "", 26),
+            (nameof(ResumoGasto.Categoria), "Categoria", "", 16),
+            (nameof(ResumoGasto.Natureza), "Natureza", "", 13),
+            (nameof(ResumoGasto.Importancia), "Importância", "", 12),
+            (nameof(ResumoGasto.Necessidade), "Necessidade", "", 12),
+            (nameof(ResumoGasto.Planejamento), "Planejamento", "", 15),
+            (nameof(ResumoGasto.Frequencia), "Frequência", "", 12),
+            (nameof(ResumoGasto.Quantidade), "Lançamentos", "N0", 10),
+            (nameof(ResumoGasto.Total), "Total gasto", "C2", 14));
 
-        DataGridViewColumn colunaTotal = dgvGastosPorCategoria.Columns[nameof(GastoPorCategoria.Total)]!;
+        dgvResumoGastos.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+        dgvResumoGastos.CellFormatting += (_, e) =>
+        {
+            if (e.ColumnIndex < 0) return;
+            string coluna = dgvResumoGastos.Columns[e.ColumnIndex].Name;
+            if (coluna is nameof(ResumoGasto.Natureza) or nameof(ResumoGasto.Importancia)
+                or nameof(ResumoGasto.Necessidade) or nameof(ResumoGasto.Planejamento) or nameof(ResumoGasto.Frequencia))
+                e.Value = NomeOpcao(e.Value);
+        };
+        DataGridViewColumn colunaTotal = dgvResumoGastos.Columns[nameof(ResumoGasto.Total)]!;
         colunaTotal.SortMode = DataGridViewColumnSortMode.Programmatic;
         colunaTotal.HeaderCell.ToolTipText = "Clique para alternar a ordem dos totais.";
         colunaTotal.HeaderCell.SortGlyphDirection = SortOrder.Descending;
-        dgvGastosPorCategoria.ColumnHeaderMouseClick += (_, e) =>
+        dgvResumoGastos.ColumnHeaderMouseClick += (_, e) =>
         {
             if (e.Button != MouseButtons.Left || e.ColumnIndex != colunaTotal.Index ||
-                dgvGastosPorCategoria.DataSource is not List<GastoPorCategoria> gastos)
+                dgvResumoGastos.DataSource is not List<ResumoGasto> gastos)
                 return;
 
             _gastosEmOrdemCrescente = !_gastosEmOrdemCrescente;
@@ -82,16 +97,16 @@ public partial class UcExtrato : UserControl
         };
     }
 
-    private void ExibirGastosOrdenados(IReadOnlyList<GastoPorCategoria> gastos)
+    private void ExibirGastosOrdenados(IReadOnlyList<ResumoGasto> gastos)
     {
         var ordenados = _gastosEmOrdemCrescente
             ? gastos.OrderBy(g => g.Total)
             : gastos.OrderByDescending(g => g.Total);
 
-        var resultado = ordenados.ThenBy(g => g.Categoria).ThenBy(g => g.CategoriaId).ToList();
-        dgvGastosPorCategoria.DataSource = resultado;
+        var resultado = ordenados.ThenBy(g => g.Nome).ThenBy(g => g.Categoria).ThenBy(g => g.CadastroId).ToList();
+        dgvResumoGastos.DataSource = resultado;
         ExibirGraficoGastos(resultado);
-        dgvGastosPorCategoria.Columns[nameof(GastoPorCategoria.Total)]!.HeaderCell.SortGlyphDirection =
+        dgvResumoGastos.Columns[nameof(ResumoGasto.Total)]!.HeaderCell.SortGlyphDirection =
             _gastosEmOrdemCrescente ? SortOrder.Ascending : SortOrder.Descending;
     }
 
@@ -124,8 +139,11 @@ public partial class UcExtrato : UserControl
         dgvExtrato.RowTemplate.Height = 34;
         AdicionarColunaExtrato(nameof(ExtratoItem.Data), "Data", 85, 85, "dd/MM/yyyy");
         AdicionarColunaExtrato(nameof(ExtratoItem.Conta), "Conta", 130, 110);
-        AdicionarColunaExtrato(nameof(ExtratoItem.Descricao), "Descrição", 170, 140);
-        AdicionarColunaExtrato(nameof(ExtratoItem.Categoria), "Categoria", 110, 100);
+        AdicionarColunaExtrato(nameof(ExtratoItem.NomeGasto), "Gasto", 170, 140);
+        AdicionarColunaExtrato(nameof(ExtratoItem.Descricao), "Descrição", 150, 130);
+        AdicionarColunaExtrato(nameof(ExtratoItem.NaturezaGasto), "Natureza", 90, 90);
+        AdicionarColunaExtrato(nameof(ExtratoItem.NecessidadeGasto), "Necessidade", 90, 90);
+        AdicionarColunaExtrato(nameof(ExtratoItem.FrequenciaGasto), "Frequência", 90, 90);
         AdicionarColunaExtrato(nameof(ExtratoItem.Movimento), "Tipo", 140, 115);
         AdicionarColunaExtrato(nameof(ExtratoItem.Valor), "Valor", 105, 100, "C2");
         dgvExtrato.Columns[nameof(ExtratoItem.Valor)]!.DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
@@ -226,7 +244,7 @@ public partial class UcExtrato : UserControl
                 : "Escolha o período e clique em Consultar extrato.");
             try
             {
-                await CarregarCategoriasGastosAsync();
+                await CarregarFiltrosGastosAsync();
                 await CarregarCartoesGastosAsync();
             }
             catch (Exception erro)
@@ -315,20 +333,20 @@ public partial class UcExtrato : UserControl
 
         try
         {
-            await CarregarCategoriasGastosAsync();
+            await CarregarFiltrosGastosAsync();
             if (comprasNoCartao && !IsDisposed && !Disposing) await CarregarCartoesGastosAsync();
             if (IsDisposed || Disposing) return;
 
             FiltrosRelatorioGastos filtrosGastos = LerFiltrosGastos();
             Guid[] ids = comprasNoCartao ? LerCartoesGastos() : contas!;
             var gastos = await Task.Run(() => comprasNoCartao
-                ? _relatorioGastos.ConsultarComprasPorCategoria(ids, inicio, fim, filtrosGastos)
-                : _relatorioGastos.ConsultarPorCategoria(ids, inicio, fim, filtrosGastos));
+                ? _relatorioGastos.ConsultarComprasPorGasto(ids, inicio, fim, filtrosGastos)
+                : _relatorioGastos.ConsultarPorGasto(ids, inicio, fim, filtrosGastos));
             if (IsDisposed || Disposing) return;
 
             ExibirGastosOrdenados(gastos);
             MostrarStatusGastos(gastos.Count == 0 ? "Nenhuma despesa corresponde aos filtros."
-                : $"{gastos.Count} categoria(s)  |  Total gasto: {Moeda(gastos.Sum(g => g.Total))}");
+                : $"{gastos.Sum(g => g.Quantidade)} lançamento(s)  |  Total gasto: {Moeda(gastos.Sum(g => g.Total))}{Environment.NewLine}{(comprasNoCartao ? "Crédito: valor integral das compras" : "Débito: sem transferências e pagamentos de fatura")}");
         }
         finally
         {
@@ -414,13 +432,19 @@ public partial class UcExtrato : UserControl
                 ? $"Cartão: {linha.Conta}{Environment.NewLine}Parcelas: {parcelas}"
                 : $"Conta: {linha.Conta}{Environment.NewLine}Banco: {linha.Banco}",
             $"Data: {linha.Data:dd/MM/yyyy HH:mm:ss}", $"Tipo: {linha.Movimento}",
-            $"Valor: {Moeda(linha.Valor)}", $"Categoria: {linha.Categoria}")
+            $"Valor: {Moeda(linha.Valor)}", $"Gasto: {linha.NomeGasto}", $"Categoria: {linha.Categoria}")
             + Environment.NewLine + (avaliar ? string.Join(Environment.NewLine,
             $"Importância: {(linha.Importancia == ImportanciaTransacao.Media ? "Média" : linha.Importancia?.ToString() ?? "Não informada")}",
             $"Planejamento: {(linha.Planejamento == PlanejamentoTransacao.NaoPlanejada ? "Não planejada" : linha.Planejamento?.ToString() ?? "Não informado")}",
-            $"Urgência: {(linha.Urgencia == UrgenciaTransacao.SemUrgencia ? "Sem urgência" : linha.Urgencia?.ToString() ?? "Não informada")}",
-            "Justificativa:", linha.Justificativa) : "Avaliação: Não se aplica.")
+            linha.Gasto is null ? $"Urgência (registro anterior): {(linha.Urgencia == UrgenciaTransacao.SemUrgencia ? "Sem urgência" : linha.Urgencia?.ToString() ?? "Não informada")}" : $"Necessidade: {NomeOpcao(linha.Gasto.Necessidade)}",
+            "Motivo do gasto:", string.IsNullOrWhiteSpace(linha.Justificativa) ? "Não informado (opcional)." : linha.Justificativa) : "Avaliação: Não se aplica.")
             + Environment.NewLine + "Descrição:" + Environment.NewLine + linha.Descricao;
+        if (linha.Gasto is { } gasto)
+        {
+            txtDetalhesExtrato.AppendText(Environment.NewLine + string.Join(Environment.NewLine,
+                $"Natureza: {NomeOpcao(gasto.Natureza)}", $"Frequência: {gasto.Frequencia}",
+                $"Cadastro reutilizável: {(gasto.CadastroId.HasValue ? "Sim" : "Não, somente neste lançamento")}"));
+        }
         if (linha.Parcelas.Count > 0)
         {
             txtDetalhesExtrato.AppendText(Environment.NewLine + Environment.NewLine + "Parcelas:" + Environment.NewLine);

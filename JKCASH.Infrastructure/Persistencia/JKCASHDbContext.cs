@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using JKCASH.Domain.Entidades;
@@ -13,6 +13,7 @@ namespace JKCASH.Infrastructure.Persistencia
             DbContextOptions<JKCASHDbContext> opcoes )
             : base(opcoes ) { }
 
+        public DbSet<Gasto> Gastos => Set<Gasto>();
         public DbSet<Categoria> Categorias => Set<Categoria>();
         public DbSet<Conta> Contas => Set<Conta>();
         public DbSet<Transacao> Transacoes => Set<Transacao>();
@@ -33,6 +34,7 @@ namespace JKCASH.Infrastructure.Persistencia
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            GastoMapeamento.Configurar(modelBuilder);
 
             modelBuilder.Entity<Categoria>()
                 .ToTable("Categorias", "dbo");

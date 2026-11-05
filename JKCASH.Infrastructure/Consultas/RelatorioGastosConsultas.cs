@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace JKCASH.Infrastructure.Consultas;
 
-public sealed class RelatorioGastosConsulta : IRelatorioGastosConsulta
+public sealed partial class RelatorioGastosConsulta : IRelatorioGastosConsulta
 {
     private readonly Func<JKCASHDbContext> _criarContexto;
 

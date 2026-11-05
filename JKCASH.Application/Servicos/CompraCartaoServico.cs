@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
 using System;
@@ -39,7 +39,7 @@ namespace JKCASH.Application.Servicos
             PlanejamentoTransacao planejamento,
             UrgenciaTransacao urgencia,
             string justificativa,
-            int quantidadeParcelas = 1)
+            int quantidadeParcelas = 1, Gasto? gasto = null, bool salvarGasto = false, bool novoGasto = false)
         {
             CartaoCredito? cartao =
                 _repositorio.BuscarPorId(cartaoId);
@@ -51,6 +51,7 @@ namespace JKCASH.Application.Servicos
                     nameof(cartaoId));
             }
 
+            if (gasto is not null) categoriaId = gasto.CategoriaId;
             if (!_categorias.Existe(categoriaId))
             {
                 throw new ArgumentException(
@@ -68,7 +69,7 @@ namespace JKCASH.Application.Servicos
                 planejamento,
                 urgencia,
                 justificativa,
-                quantidadeParcelas);
+                quantidadeParcelas, gasto, salvarGasto, novoGasto);
 
             DateTime hoje = _relogio.GetLocalNow().Date;
             if (compra.Data > hoje)

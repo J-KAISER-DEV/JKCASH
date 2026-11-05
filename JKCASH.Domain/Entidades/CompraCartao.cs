@@ -1,4 +1,4 @@
-﻿using JKCASH.Domain.Enums;
+using JKCASH.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -22,6 +22,8 @@ namespace JKCASH.Domain.Entidades
         public IReadOnlyList<ParcelaCartao> Parcelas =>
             _parcelas.AsReadOnly();
         private readonly List<ParcelaCartao> _parcelas = new();
+        public DetalhesGasto? Gasto { get; private set; }
+        public Gasto? NovoCadastroGasto { get; private set; }
         private CompraCartao() { }
         
         public CompraCartao(
@@ -34,8 +36,16 @@ namespace JKCASH.Domain.Entidades
             PlanejamentoTransacao planejamento,
             UrgenciaTransacao urgencia,
             string justificativa,
-            int quantidadeParcelas = 1)
+            int quantidadeParcelas = 1, Gasto? gasto = null, bool salvarGasto = false, bool novoGasto = false)
         {
+            if (gasto is not null)
+            {
+                categoriaId = gasto.CategoriaId; importancia = gasto.Importancia;
+                planejamento = gasto.Planejamento; urgencia = UrgenciaTransacao.SemUrgencia;
+                justificativa = gasto.Motivo;
+                Gasto = new DetalhesGasto(gasto, salvarGasto);
+                NovoCadastroGasto = salvarGasto && novoGasto ? gasto : null;
+            }
             ArgumentNullException.ThrowIfNull(cartao);
             Validacao.ValorMonetarioPositivo(valor, nameof(valor));
             Validacao.TextoObrigatorio(descricao, nameof(descricao),200);
@@ -43,7 +53,7 @@ namespace JKCASH.Domain.Entidades
             Validacao.EnumValido(importancia, nameof(importancia));
             Validacao.EnumValido(planejamento, nameof(planejamento));
             Validacao.EnumValido(urgencia, nameof(urgencia));
-            Validacao.TextoObrigatorio(justificativa, nameof(justificativa),500);
+            if (gasto is null) Validacao.TextoObrigatorio(justificativa, nameof(justificativa),500);
             // Até 120 parcelas, sempre com valor de pelo menos um centavo.
             Validacao.InteiroNoIntervalo(quantidadeParcelas, 1, 120, nameof(quantidadeParcelas));
             if (valor < quantidadeParcelas * 0.01m)

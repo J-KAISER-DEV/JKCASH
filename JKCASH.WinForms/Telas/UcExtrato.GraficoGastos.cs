@@ -21,7 +21,7 @@ public partial class UcExtrato
 
     private void ConfigurarGraficoGastos()
     {
-        var titulo = EstiloVisual.Rotulo("Gastos por categoria", 11, true);
+        var titulo = EstiloVisual.Rotulo("Total por gasto e classificação", 11, true);
         titulo.Dock = DockStyle.Top;
         titulo.Height = 28;
         _painelGraficoGastos.Controls.Add(_barrasGastos);
@@ -48,7 +48,7 @@ public partial class UcExtrato
         _painelGraficoGastos.Height = Math.Clamp(disponivel / 2, 0, Math.Min(200, desejada));
     }
 
-    private void ExibirGraficoGastos(IReadOnlyList<GastoPorCategoria> gastos)
+    private void ExibirGraficoGastos(IReadOnlyList<ResumoGasto> gastos)
     {
         _barrasGastos.SuspendLayout();
         try
@@ -81,10 +81,10 @@ public partial class UcExtrato
 
             for (int i = 0; i < gastos.Count; i++)
             {
-                GastoPorCategoria gasto = gastos[i];
+                ResumoGasto gasto = gastos[i];
                 linhas.RowStyles.Add(new RowStyle(SizeType.Absolute, alturaLinha));
 
-                var nome = EstiloVisual.Rotulo(gasto.Categoria, 9);
+                var nome = EstiloVisual.Rotulo(gasto.Nome + " • " + gasto.Categoria, 9);
                 nome.AutoEllipsis = true;
                 nome.Dock = DockStyle.Fill;
 
@@ -120,7 +120,7 @@ public partial class UcExtrato
 
     private void LimparGastos()
     {
-        dgvGastosPorCategoria.DataSource = null;
+        dgvResumoGastos.DataSource = null;
         ExibirGraficoGastos([]);
     }
 }

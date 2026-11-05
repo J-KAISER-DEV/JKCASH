@@ -1,4 +1,5 @@
-﻿using JKCASH.Domain.Enums;
+using JKCASH.Domain.ObjetosDeValor;
+using JKCASH.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -20,6 +21,9 @@ namespace JKCASH.Domain.Entidades
         public PlanejamentoTransacao? Planejamento { get; private set; }
         public UrgenciaTransacao? Urgencia { get; private set; }
         public string? Justificativa { get; private set; }
+
+        public DetalhesGasto? Gasto { get; private set; }
+        public Gasto? NovoCadastroGasto { get; private set; }
 
         private Transacao() { }
 
@@ -52,8 +56,17 @@ namespace JKCASH.Domain.Entidades
         ImportanciaTransacao? importancia = null,
         PlanejamentoTransacao? planejamento = null,
         UrgenciaTransacao? urgencia = null,
-        string? justificativa = null)
+        string? justificativa = null, Gasto? gasto = null, bool salvarGasto = false, bool novoGasto = false)
         {
+            if (gasto is not null)
+            {
+                if (tipo != TipoTransacao.Saida) throw new ArgumentException("Gastos só podem ser vinculados a saídas.");
+                categoriaId = gasto.CategoriaId; importancia = gasto.Importancia;
+                planejamento = gasto.Planejamento; urgencia = UrgenciaTransacao.SemUrgencia;
+                justificativa = gasto.Motivo;
+                Gasto = new DetalhesGasto(gasto, salvarGasto);
+                NovoCadastroGasto = salvarGasto && novoGasto ? gasto : null;
+            }
             Validacao.GuidNaoVazio(contaId, nameof(contaId));
             Validacao.EnumValido(tipo, nameof(tipo));
             
@@ -61,7 +74,7 @@ namespace JKCASH.Domain.Entidades
             Validacao.TextoObrigatorio(descricao, nameof(descricao),200);
 
             Validacao.GuidNaoVazio(categoriaId, nameof(categoriaId));
-            if (tipo == TipoTransacao.Saida)
+            if (tipo == TipoTransacao.Saida && gasto is null)
                 ValidarAvaliacao(importancia, planejamento, urgencia, justificativa);
           
             Id = Guid.NewGuid();

@@ -12,6 +12,10 @@ namespace JKCASH.WinForms.Inicializacao;
 
 public static class FabricaTelas
 {
+    public static UcGastos CriarGastos() => new(
+        new GastoRepositorioEf(ConexaoLocal.CriarContexto),
+        new CategoriaRepositorioEf(ConexaoLocal.CriarContexto));
+
     public static UcCategorias CriarCategorias()
     {
         ICategoriaRepositorio repositorio=
@@ -58,7 +62,7 @@ public static class FabricaTelas
         ICartaoCreditoRepositorio cartoes = new CartaoCreditoRepositorioEf(ConexaoLocal.CriarContexto);
         ICompraCartaoRepositorio compras = new CompraCartaoRepositorioEf(ConexaoLocal.CriarContexto);
         return new UcTransacoes(contas, categorias, servico, transferencias, cartoes,
-            new CompraCartaoServico(cartoes, categorias, compras));
+            new CompraCartaoServico(cartoes, categorias, compras), gastos: new GastoRepositorioEf(ConexaoLocal.CriarContexto));
     }
 
     public static UcExtrato CriarExtrato()

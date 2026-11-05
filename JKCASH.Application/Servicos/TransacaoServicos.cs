@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Domain.Enums;
 using JKCASH.Application.Excecoes;
@@ -33,7 +33,7 @@ namespace JKCASH.Application.Servicos
             ImportanciaTransacao? importancia = null,
             PlanejamentoTransacao? planejamento = null,
             UrgenciaTransacao? urgencia = null,
-            string? justificativa = null)
+            string? justificativa = null, Gasto? gasto = null, bool salvarGasto = false, bool novoGasto = false)
         {
             ArgumentNullException.ThrowIfNull(conta);
             if (!conta.Ativa)
@@ -41,6 +41,7 @@ namespace JKCASH.Application.Servicos
                 throw new ConflitoFinanceiroException(
                     "A conta foi desativada. Atualize e selecione uma conta ativa. ");
             }
+            if (gasto is not null) categoriaId = gasto.CategoriaId;
             if(!_categorias.Existe(categoriaId))
             {
                 throw new ArgumentException(
@@ -57,7 +58,7 @@ namespace JKCASH.Application.Servicos
                 importancia,
                 planejamento,
                 urgencia,
-                justificativa);
+                justificativa, gasto, salvarGasto, novoGasto);
 
             if (transacao.Tipo == TipoTransacao.Entrada)
             {

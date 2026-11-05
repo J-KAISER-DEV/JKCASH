@@ -1,4 +1,4 @@
-﻿using JKCASH.Application.Interfaces;
+using JKCASH.Application.Interfaces;
 using JKCASH.Domain.Entidades;
 using JKCASH.Infrastructure.Persistencia;
 using Microsoft.EntityFrameworkCore;
@@ -66,6 +66,7 @@ namespace JKCASH.Infrastructure.Repositorios
 
                 if (transacao.Tipo == TipoTransacao.Entrada) persistida.Creditar(transacao.Valor);
                 else persistida.Debitar(transacao.Valor);
+                if (transacao.NovoCadastroGasto is Gasto cadastro) contexto.Gastos.Add(cadastro);
                 contexto.Transacoes.Add(transacao);
             });
         }

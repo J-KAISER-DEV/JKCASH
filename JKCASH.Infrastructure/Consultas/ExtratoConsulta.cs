@@ -71,7 +71,7 @@ public sealed class ExtratoConsulta : IExtratoConsulta
                 c == null ? "Banco não encontrado" : c.Banco,
                 t.Descricao, categoria == null ? "Categoria não encontrada" : categoria.Nome,
                 t.Tipo, t.Valor, t.TransferenciaId.HasValue,
-                t.Importancia, t.Planejamento, t.Urgencia, t.Justificativa)).ToList();
+                t.Importancia, t.Planejamento, t.Urgencia, t.Justificativa) { Gasto = t.Gasto }).ToList();
 
         decimal Somar(TipoTransacao tipo, bool transferencia) =>
             totais.Where(g => g.Tipo == tipo && g.Transferencia == transferencia).Sum(g => g.Valor);
@@ -127,7 +127,7 @@ public sealed class ExtratoConsulta : IExtratoConsulta
                 cartao == null ? "Cartão não encontrado" : cartao.Nome, "",
                 compra.Descricao, categoria == null ? "Categoria não encontrada" : categoria.Nome,
                 TipoTransacao.Saida, compra.Valor, false, compra.Importancia, compra.Planejamento,
-                compra.Urgencia, compra.Justificativa, compra.QuantidadeParcelas)).ToList();
+                compra.Urgencia, compra.Justificativa, compra.QuantidadeParcelas) { Gasto = compra.Gasto }).ToList();
 
         if (itens.Count > 0)
         {
