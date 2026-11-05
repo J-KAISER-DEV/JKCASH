@@ -8,7 +8,7 @@ public partial class UcExtrato
     private readonly Panel _painelGraficoGastos = new()
     {
         Name = "pnlGraficoGastos",
-        Dock = DockStyle.Top,
+        Dock = DockStyle.Fill,
         BackColor = Color.White,
         Padding = new Padding(8, 0, 8, 6)
     };
@@ -26,26 +26,8 @@ public partial class UcExtrato
         titulo.Height = 28;
         _painelGraficoGastos.Controls.Add(_barrasGastos);
         _painelGraficoGastos.Controls.Add(titulo);
-        tabRelatorioGastos.Controls.Add(_painelGraficoGastos);
-        tabRelatorioGastos.Controls.SetChildIndex(_painelGraficoGastos, 1);
-        tabRelatorioGastos.SizeChanged += (_, _) => AjustarAlturaGrafico();
+        ConfigurarAbasRelatorioGastos();
         ExibirGraficoGastos([]);
-    }
-
-    private void AjustarAlturaGrafico()
-    {
-        int disponivel = tabRelatorioGastos.DisplayRectangle.Height -
-            _painelFiltrosGastos.Height - _statusGastos.Height;
-        if (disponivel < 180)
-        {
-            _painelGraficoGastos.Dock = DockStyle.Left;
-            _painelGraficoGastos.Width = tabRelatorioGastos.DisplayRectangle.Width * 45 / 100;
-            return;
-        }
-
-        _painelGraficoGastos.Dock = DockStyle.Top;
-        int desejada = (_barrasGastos.Controls.Count == 0 ? 28 : _barrasGastos.Controls[0].Height) + 34;
-        _painelGraficoGastos.Height = Math.Clamp(disponivel / 2, 0, Math.Min(200, desejada));
     }
 
     private void ExibirGraficoGastos(IReadOnlyList<ResumoGasto> gastos)
@@ -114,7 +96,6 @@ public partial class UcExtrato
         finally
         {
             _barrasGastos.ResumeLayout();
-            AjustarAlturaGrafico();
         }
     }
 

@@ -35,6 +35,7 @@ public partial class UcExtrato : UserControl
         ConfigurarFiltrosGastos();
         ConfigurarGraficoGastos();
         ConfigurarSelecaoCartoesGastos();
+        ConfigurarLayoutExtrato();
     }
 
     public UcExtrato(IContaRepositorio contas, IExtratoConsulta extrato,
